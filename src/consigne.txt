@@ -1,0 +1,135 @@
+Cahier des Charges Technique : Système de Détection et
+Classification des Stades de Tumeurs
+1. Présentation Générale et Objectifs du Projet
+Mission et Contexte L'objectif est de concevoir un système robuste d'aide au diagnostic
+clinique basé sur le Deep Learning. Le système doit assurer la détection binaire
+(présence/absence de tumeur) ainsi que la classification multi-classes des stades pathologiques
+(I à IV). En tant que dispositif médical logiciel, la priorité est donnée à la sensibilité de détection
+et à l'explicabilité des prédictions pour une intégration fluide dans le workflow des radiologues
+et oncologues.
+Livrables Attendus
+• Application de Base (MVP) : Un pipeline "End-to-End" comprenant un modèle CNN
+2D baseline, le prétraitement standardisé et une évaluation de précision initiale.
+• Version Avancée Industrialisée : Une solution optimisée intégrant le Transfer
+Learning, une gestion avancée du déséquilibre des classes, une détection d'anomalies
+par erreur de reconstruction, et un déploiement conteneurisé compatible avec les
+standards Health-Tech (DICOM, FastAPI).
+2. Spécifications de l'Application de Base (Baseline)
+Collecte et Sources de Données Le modèle sera entraîné et validé sur des jeux de données
+hétérogènes pour garantir sa polyvalence :
+• Kaggle Brain Tumor MRI Dataset : Imagerie par résonance magnétique cérébrale.
+• Breast Histopathology Images : Coupes histopathologiques pour l'analyse cellulaire.
+• Modalités supportées : IRM, Scanners (CT-scan) et Histopathologie.
+Prétraitement des Données Le pipeline de données doit garantir la reproductibilité via les
+étapes suivantes :
+1. Redimensionnement : Uniformisation des inputs à 128x128 pixels (requis pour
+l'input_shape du modèle).
+2. Normalisation : Mise à l'échelle des pixels entre [0, 1] pour stabiliser la descente de
+gradient.
+3. Étiquetage : Encodage catégoriel (0 : absence de tumeur, 1-4 : stades I à IV).
+3. Architecture Technique du Modèle de Base (CNN)
+L'architecture s'appuiera sur un modèle séquentiel (Keras Sequential) dont les spécifications
+sont détaillées ci-dessous :
+Type de Couche Paramètres et Output Shape Fonction / Activation
+Input (128, 128, 3) Entrée image RGB
+Conv2D 32 filtres, Noyau 3x3 Extraction de patterns (ReLU)
+MaxPooling2D Pool Size (2, 2) Réduction spatiale
+Conv2D 64 filtres, Noyau 3x3 Caractéristiques complexes (ReLU)
+MaxPooling2D Pool Size (2, 2) Réduction spatiale
+Flatten 1D Vector Linéarisation des caractéristiques
+Dense 128 neurones Couche d'interprétation (ReLU)
+Dense (Sortie) 5 neurones Classification (Softmax)
+Configuration de Compilation et Sortie :
+• Optimiseur : 'adam' (pour sa gestion adaptative du taux d'apprentissage).
+• Fonction de Perte : 'categorical_crossentropy' (adaptée au multi-classe).
+• Sortie Probabiliste : Le modèle doit renvoyer un vecteur de 5 probabilités. La classe
+0 représente le groupe contrôle (négatif), tandis que les classes 1 à 4 représentent les
+stades de sévérité croissants.
+Note Technique : Le système pourra utiliser l'erreur de reconstruction ou une faible
+probabilité sur la classe majoritaire pour signaler des cas atypiques (détection d'anomalies)
+nécessitant une expertise humaine prioritaire.
+Augmentation de Données Pour pallier la rareté de certaines pathologies et améliorer la
+généralisation :
+• Rotations aléatoires et retournements (flips) horizontaux/verticaux.
+• Variations de zoom pour simuler différentes résolutions d'acquisition.
+3. Analyse Clinique et Interprétabilité
+Classification par Stades et Corrélation Clinique Le modèle doit apprendre des
+biomarqueurs visuels correspondant aux descriptions cliniques suivantes :
+Stade de la
+Tumeur
+Signes Cliniques Associés Focus Imagerie (Expertise)
+Stade I Masse minime, souvent
+asymptomatique.
+Identification de micro-calcifications
+ou nodules isolés.
+Stade II Croissance locale, douleurs
+légères.
+Extension tumorale limitée à l'organe
+d'origine.
+Stade III Envahissement local,
+symptômes marqués.
+Atteinte des ganglions lymphatiques
+régionaux.
+Stade IV Métastases, signes
+systémiques.
+Visualisation de lésions multi-focales
+et foyers secondaires.
+Aide au Diagnostic (XAI) L'implémentation de Grad-CAM (Gradient-weighted Class
+Activation Mapping) est obligatoire. Elle permet de générer des cartes de chaleur superposées
+aux images médicales, mettant en évidence les zones de forte activation neuronale (ex: zones
+métastatiques pour un Stade IV), assurant ainsi la transparence indispensable à la validation
+médicale.
+4. Extensions Avancées :
+a. Optimisation et Performance
+❖ Gestion du Déséquilibre des Classes Les données médicales sont naturellement
+déséquilibrées (rareté des stades précoces ou terminaux). Pour éviter tout biais
+prédictif, nous imposerons l'utilisation de la Focal Loss ou d'une Weighted
+Cross-Entropy, pénalisant davantage les erreurs sur les classes minoritaires.
+❖ Stratégie de Transfer Learning Pour surpasser le CNN baseline, nous
+utiliserons des architectures pré-entraînées (ImageNet) type ResNet50V2 ou
+EfficientNetB0. La stratégie consistera en une phase de Feature Extraction
+(couches gelées), suivie d'un Fine-Tuning des couches supérieures pour adapter
+les poids aux spécificités de l'imagerie médicale (niveaux de gris, contrastes
+spécifiques).
+❖ Métriques de Fiabilité Clinique L'Accuracy étant insuffisante en oncologie, le
+succès sera mesuré par :
+✓ Sensibilité (Rappel) : Cible > 95% pour minimiser les faux négatifs (risques
+vitaux).
+✓ F2-Score : Métrique privilégiant le rappel par rapport à la précision.
+✓ ROC-AUC par stade : Évaluation de la capacité de discrimination pour chaque
+classe pathologique.
+b. Détection d'Anomalies et Décision
+❖ Détection via Erreur de Reconstruction En complément de la classification, un
+auto-encodeur sera utilisé pour calculer une erreur de reconstruction. Une erreur
+élevée sur une image de test signalera un cas "Suspect" ou "Inconnu" n'appartenant
+pas aux classes d'entraînement, alertant immédiatement le praticien sur un cas
+atypique.
+❖ Incertitude Probabiliste Le vecteur de sortie Softmax ne sera pas seulement utilisé
+pour la classe argmax. Les scores de confiance permettront de filtrer les diagnostics :
+une probabilité inférieure à un seuil défini (ex: < 0.7) déclenchera une demande de
+révision manuelle prioritaire.
+5. Architecture de Déploiement et MLOps
+Industrialisation avec FastAPI Le modèle sera exposé via une API FastAPI. Le choix de
+l'asynchronisme (async) est critique pour gérer les requêtes simultanées provenant de
+différents services hospitaliers sans augmenter la latence d'inférence.
+Conteneurisation et Portabilité L'utilisation de Docker est requise pour encapsuler les
+dépendances (CUDA, TensorFlow). Cela garantit une reproductibilité stricte entre
+l'environnement de développement et le déploiement sur site ou cloud, conformément aux
+exigences de validation des systèmes critiques.
+Interface et Intégration Écosystème
+• Dashboard Streamlit : Interface de prototypage pour le chargement d'images et la
+visualisation des cartes Grad-CAM.
+• Interopérabilité : Le backend sera conçu pour permettre une future intégration aux
+systèmes PACS (Picture Archiving and Communication Systems) via le standard
+DICOM, facilitant l'adoption en milieu clinique réel.
+6. Critères d'Évaluation et Validation
+Pour valider l'industrialisation du système, les KPIs suivants sont définis :
+• Sensibilité Clinique : Absence quasi-totale de faux négatifs sur le set de test.
+• Inférence Latency : Temps de réponse inférieur à 200ms par image (traitement temps
+réel).
+• Robustesse : Performance stable sur des images bruitées ou provenant de différents
+constructeurs de scanners.
+Conclusion Ce projet allie la puissance des réseaux de neurones profonds à la rigueur de
+l'ingénierie logicielle médicale. En intégrant l'explicabilité et la détection d'anomalies, nous
+passons d'un simple classifieur à un véritable système de soutien au diagnostic, capable de
+s'insérer de manière sécurisée et performante dans une infrastructure Health-Tech moderne

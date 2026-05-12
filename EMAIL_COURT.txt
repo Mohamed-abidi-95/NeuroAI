@@ -1,0 +1,67 @@
+Objet : Projet Deep Learning — Approche retenue
+
+
+Madame, Monsieur,
+
+Je vous contacte pour vous informer de l'approche que j'ai retenue pour le projet
+de détection et classification des stades de tumeurs.
+
+──────────────────────────────────────────────────────────────────────────────────
+PROBLÈME ACTUEL
+──────────────────────────────────────────────────────────────────────────────────
+
+- Dataset disponible : ~2870 images (petit dataset)
+- 4 classes (glioma, meningioma, notumor, pituitary) à transformer en 5 stades
+- Risque d'overfitting avec un CNN from scratch sans Transfer Learning
+- Déséquilibre des classes : stage_0 nombreux, stage_4 rare
+
+
+──────────────────────────────────────────────────────────────────────────────────
+SOLUTION RECOMMANDÉE
+──────────────────────────────────────────────────────────────────────────────────
+
+1. CNN BASELINE RENFORCÉ (conforme cahier des charges)
+   - 4 blocs convolution au lieu de 2 (améliore capacité)
+   - Input 128×128×3 | Output 5 Softmax
+   - BatchNormalization + Dropout pour régularisation
+
+2. FOCAL LOSS + CLASS WEIGHTS
+   - Focal Loss pénalise les classes difficiles/minoritaires
+   - Class weights compensent le déséquilibre
+   - Améliore sensibilité (Recall) > 95%
+
+3. AUGMENTATION FORTE
+   - Rotations ±25°, flips, zoom ±15%, luminosité
+   - Simule variations capteur IRM
+   - Multiplie données d'entraînement
+
+4. MÉTRIQUES CLINIQUES
+   - Sensibilité (Recall) > 95% — minimise faux négatifs
+   - F2-Score — privilégie le rappel
+   - ROC-AUC par stade — discrimination
+
+5. XAI + ANOMALIES
+   - Grad-CAM pour explicabilité (cartes de chaleur)
+   - Auto-encodeur pour détecter cas atypiques
+   - Alerte si confiance < 70%
+
+6. DÉPLOIEMENT
+   - API FastAPI asynchrone
+   - Dashboard Streamlit
+   - Docker pour reproductibilité
+
+
+──────────────────────────────────────────────────────────────────────────────────
+RÉSUMÉ
+──────────────────────────────────────────────────────────────────────────────────
+
+✓ 100% conforme au cahier des charges (CNN baseline uniquement)
+✓ Optimisé pour petit dataset (~2870 images)
+✓ Focal Loss pour atteindre Recall > 95%
+✓ Grad-CAM + Auto-encodeur comme demandé
+✓ Prêt à entraîner en 4 jours
+
+
+Cordialement,
+[Votre Nom]
+

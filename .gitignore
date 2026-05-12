@@ -1,0 +1,61 @@
+### IntelliJ IDEA ###
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+.kotlin
+
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### Mac OS ###
+.DS_Store
+
+### Python ###
+venv/
+venv310/
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+.env
+
+### Jupyter ###
+.ipynb_checkpoints/
+
+### Keras / Model files (use Git LFS or store separately) ###
+*.keras
+*.h5
+
+### TensorFlow logs ###
+logs/
+
+### Large data folders ###
+data/raw/
+data/staged/
+data/staged_4classes/
+data/Testing/
+data/Training/
+
+### IDE ###
+*.iml
+.idea/
+

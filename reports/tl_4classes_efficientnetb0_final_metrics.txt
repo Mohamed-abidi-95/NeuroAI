@@ -1,0 +1,18 @@
+MODEL: tl_4classes_efficientnetb0_final
+Accuracy         : 0.9281
+Recall (macro)   : 0.9281
+Precision (macro): 0.9317
+F2-Score (macro) : 0.9268
+ROC-AUC (macro)  : 0.9863
+Cas incertains   : 337/1600
+
+                   precision    recall  f1-score   support
+
+   Stage0-NoTumor       0.96      1.00      0.98       400
+Stage1-Meningioma       0.85      0.94      0.89       400
+ Stage2-Pituitary       0.95      0.99      0.97       400
+  Stage3-4-Glioma       0.97      0.78      0.86       400
+
+         accuracy                           0.93      1600
+        macro avg       0.93      0.93      0.93      1600
+     weighted avg       0.93      0.93      0.93      1600

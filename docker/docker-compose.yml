@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: tumor_api
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_PATH=/app/models/tl_4classes_efficientnetb0_final.keras
+      - AE_MODEL_PATH=/app/models/autoencoder_final.keras
+      - CONFIDENCE_THRESHOLD=0.7
+      - AE_THRESHOLD=0.05
+    volumes:
+      - ../models:/app/models:ro
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  dashboard:
+    image: python:3.10-slim
+    container_name: tumor_dashboard
+    working_dir: /app
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://api:8000
+    volumes:
+      - ../dashboard:/app/dashboard
+      - ../requirements.txt:/app/requirements.txt
+    command: >
+      sh -c "pip install --no-cache-dir streamlit requests Pillow &&
+             streamlit run dashboard/app.py --server.port=8501 --server.address=0.0.0.0"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  models:
+

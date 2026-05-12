@@ -1,0 +1,22 @@
+Modèle : cnn_baseline_best
+Accuracy            : 0.7148
+Sensibilité (macro) : 0.6230
+F2-Score (macro)    : 0.6072
+ROC-AUC (macro OvR) : 0.9338
+
+                         precision    recall  f1-score   support
+
+     Stade 0
+(Contrôle)       0.97      0.84      0.90       270
+        Stade I
+(Bénin)       0.55      0.92      0.69       270
+       Stade II
+(Local)       0.89      0.84      0.86       270
+Stade III
+(Anaplasique)       0.00      0.00      0.00       135
+         Stade IV
+(GBM)       0.51      0.51      0.51       135
+
+               accuracy                           0.71      1080
+              macro avg       0.58      0.62      0.59      1080
+           weighted avg       0.66      0.71      0.68      1080
