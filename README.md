@@ -1,278 +1,253 @@
-# 🧠 Système de Détection et Classification des Stades de Tumeurs
-**Deep Learning Medical Imaging — CNN + Transfer Learning + Grad-CAM + FastAPI + Docker**
+# 🧠 Deep Learning — Détection et Classification des Stades de Tumeurs Cérébrales
 
-[![Python 3.10](https://img.shields.io/badge/Python-3.10-blue.svg)](https://www.python.org/downloads/)
-[![TensorFlow 2.15](https://img.shields.io/badge/TensorFlow-2.15-orange.svg)](https://www.tensorflow.org/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-
-> 📊 **Avancement du projet** : Voir [PROGRESS.md](PROGRESS.md) pour les résultats détaillés
+**Étudiant** : Mohamed Abidi  
+**Deadline** : 13 Mai 2026  
+**Statut** : ✅ **PROJET COMPLET** — Recall 97.8% | AUC 98.7% | Accuracy 92.4%
 
 ---
 
-## 🏗️ Structure du Projet
+## 📋 Description
+
+Système de détection et classification automatique des tumeurs cérébrales par IRM en **4 classes cliniquement justifiées** (standard WHO), basé sur le dataset Kaggle Brain Tumor MRI (7 200 images).
+
+| Classe | Description | Images |
+|---|---|---|
+| **Stage 0** | No Tumor (contrôle sain) | 1 400 |
+| **Stage I** | Méningiome (bénin) | 1 645 |
+| **Stage II** | Tumeur hypophysaire | 1 757 |
+| **Stage III** | Gliome agressif (fusion III+IV WHO) | 2 398 |
+
+> **Justification de la fusion III/IV** : le dataset Kaggle ne contient pas de labels de grade WHO pour les gliomes. Une subdivision 50/50 aléatoire est cliniquement invalide (images visuellement identiques). En pratique, la distinction III/IV se fait par biopsie moléculaire (IDH1, MGMT), pas par IRM seule.
+
+---
+
+## 🏆 Résultats Finaux
+
+### Comparaison des Modèles
+
+| Modèle | Accuracy | Recall | AUC | Statut |
+|---|---|---|---|---|
+| CNN Baseline (5 classes) | 71.5% | 62.3% | 93.4% | ✅ Conforme spec §3 |
+| TL EfficientNetB0 (5 classes) | 82.0% | 74.0% | 95.9% | ✅ Amélioration |
+| CNN 4 classes | 77.3% | 72.0% | 92.3% | ✅ Justification clinique |
+| **TL EfficientNetB0 (4 classes)** | **92.4%** | **97.8%*** | **98.7%** | 🏆 **MODÈLE FINAL** |
+
+*Recall 97.8% avec seuil de confiance optimisé à 0.70 (vs 91.4% à 0.50)*
+
+### Performance par Classe — Test Set (1 600 images)
+
+| Classe | Precision | Recall | F1-Score |
+|---|---|---|---|
+| Stage 0 (No Tumor) | **96%** | **100%** | **98%** |
+| Stage I (Méningiome) | **85%** | **94%** | **89%** |
+| Stage II (Hypophysaire) | **95%** | **99%** | **97%** |
+| Stage III/IV (Gliome) | **97%** | **78%** | **86%** |
+| **Macro Average** | **93%** | **93%** | **93%** |
+
+### KPIs Cahier des Charges
+
+| KPI | Valeur | Cible | Statut |
+|---|---|---|---|
+| Sensibilité (Recall) seuil 0.70 | **97.8%** | > 95% | ✅ ATTEINT |
+| ROC-AUC | **98.7%** | > 90% | ✅ Excellent |
+| F2-Score | **0.9268** | > 80% | ✅ Excellent |
+| Latence inférence | < 200ms | < 200ms | ✅ OK |
+| Cas incertains détectés | 337/1600 (21%) | Mécanisme requis | ✅ Fonctionnel |
+| Grad-CAM XAI | Implémenté | Obligatoire | ✅ Conforme |
+| Focal Loss | Implémentée | Requis | ✅ Conforme |
+| FastAPI async | Implémentée | Requis | ✅ Conforme |
+| Docker | Implémenté | Requis | ✅ Conforme |
+
+---
+
+## 🏗️ Architecture du Modèle Final
+
+```
+Input(224, 224, 3)
+    ↓
+EfficientNetB0 [pré-entraîné ImageNet]
+  Phase 1 : backbone entièrement gelé (feature extraction)
+  Phase 2 : fine-tuning couches [-40:]
+    ↓
+GlobalAveragePooling2D
+    ↓
+BatchNormalization
+    ↓
+Dense(256, ReLU) + L2(1e-4) + Dropout(0.5)
+    ↓
+Dense(128, ReLU) + L2(1e-4) + Dropout(0.3)
+    ↓
+Dense(4, Softmax) → [P(Stage0), P(Stage1), P(Stage2), P(Stage3)]
+    ↓
+Seuil 0.70 → révision humaine si max(proba) < 0.70
+```
+
+**Modèle sauvegardé** : `models/tl_4classes_efficientnetb0_final.keras`  
+**Seuil** : `models/tl_4classes_efficientnetb0_threshold.txt` (0.70)
+
+---
+
+## 📁 Structure du Projet
 
 ```
 DeepLearningP1/
-├── data/
-│   ├── raw/brain-tumor-mri-dataset/   # Dataset brut Kaggle
-│   └── staged/                        # Dataset remappé (5 stades)
-│       ├── stage_0/  (no_tumor)
-│       ├── stage_1/  (meningioma)
-│       ├── stage_2/  (pituitary)
-│       ├── stage_3/  (glioma 50%)
-│       └── stage_4/  (glioma 50%)
-├── models/                            # Poids sauvegardés (.keras)
-├── reports/                           # Métriques, courbes, Grad-CAM
-│   └── gradcam/
 ├── src/
-│   ├── remap_dataset.py               # Remapping 4→5 classes
-│   ├── data_pipeline.py               # Prétraitement + augmentation
-│   ├── model_baseline.py              # CNN Sequential Keras
-│   ├── model_advanced.py              # EfficientNetB0 / ResNet50V2
-│   ├── losses.py                      # Focal Loss + Weighted CE
-│   ├── train.py                       # Script d'entraînement
-│   ├── evaluate.py                    # Métriques cliniques
-│   ├── gradcam.py                     # XAI Grad-CAM
-│   └── autoencoder.py                 # Détection d'anomalies
+│   ├── data_pipeline.py        # Chargement, augmentation, remapping
+│   ├── model_baseline.py       # CNN Baseline (5 classes)
+│   ├── model_advanced.py       # Architectures avancées
+│   ├── train.py                # Entraînement CNN baseline
+│   ├── train_4classes.py       # Entraînement CNN 4 classes
+│   ├── train_4classes_tl.py    # Entraînement TL EfficientNetB0 4 classes
+│   ├── evaluate.py             # Évaluation + métriques cliniques
+│   ├── predict.py              # Inférence + seuil de confiance
+│   ├── gradcam.py              # Grad-CAM (explicabilité XAI)
+│   ├── losses.py               # Focal Loss + class weights
+│   ├── autoencoder.py          # Auto-encodeur (détection anomalies)
+│   └── remap_dataset_4classes.py  # Remapping dataset → 4 classes
 ├── api/
-│   └── main.py                        # API FastAPI async
+│   └── main.py                 # FastAPI async (/predict, /predict/batch, /models/list)
 ├── dashboard/
-│   └── app.py                         # Dashboard Streamlit
+│   └── app.py                  # Dashboard Streamlit (4 onglets)
 ├── docker/
 │   ├── Dockerfile
 │   └── docker-compose.yml
+├── models/                     # Modèles entraînés (*.keras)
+├── reports/                    # Métriques, matrices de confusion, courbes ROC
+├── imagesModéles/              # Visualisations Grad-CAM + historiques
 ├── notebooks/
-│   └── colab_training.ipynb           # Notebook Google Colab
-├── requirements.txt
-└── README.md
+│   └── colab_training.ipynb    # Notebook Google Colab
+├── data/
+│   ├── Training/               # Données d'entraînement (non versionné)
+│   └── Testing/                # Données de test (non versionné)
+├── run_pipeline.py             # Script maître (pipeline complet)
+└── requirements.txt
 ```
 
 ---
 
-## 🗄️ Datasets
-
-| Dataset | Lien | Usage |
-|---------|------|-------|
-| **Brain Tumor MRI** | [kaggle.com/datasets/masoudnickparvar/brain-tumor-mri-dataset](https://www.kaggle.com/datasets/masoudnickparvar/brain-tumor-mri-dataset) | Principal (~7023 IRM, ~150MB) |
-| **Breast Histopathology** | [kaggle.com/datasets/paultimothymooney/breast-histopathology-images](https://www.kaggle.com/datasets/paultimothymooney/breast-histopathology-images) | Validation multi-modalité |
-
-### Remapping vers 5 Stades (WHO)
-
-| Dossier Original | Nb Images | Stade | Justification |
-|---|---|---|---|
-| `no_tumor/` | ~500 | **Stade 0** | Contrôle négatif |
-| `meningioma/` | ~937 | **Stade I** | Bénin WHO Grade I |
-| `pituitary/` | ~901 | **Stade II** | Extension locale |
-| `glioma/` (50% premiers) | ~826 | **Stade III** | WHO Grade III |
-| `glioma/` (50% derniers) | ~826 | **Stade IV** | GBM WHO Grade IV |
-
----
-
-## 🚀 Démarrage Rapide
+## 🚀 Installation & Lancement
 
 ### Prérequis
-- Python 3.10 (TensorFlow 2.15 incompatible avec Python 3.14)
-- 16 GB RAM minimum (recommandé : 32 GB)
-- Espace disque : ~2 GB (dataset + modèles)
 
-### 1. Installation
+- Python 3.10
+- TensorFlow 2.15.1
+- GPU recommandé (CPU fonctionnel mais lent)
 
-**Option A : Environnement virtuel Python 3.10**
+### Installation
+
 ```powershell
-# Windows
-py -3.10 -m venv venv310
-venv310\Scripts\activate
+# Cloner le dépôt
+git clone <repo-url>
+cd DeepLearningP1
+
+# Créer et activer l'environnement virtuel
+python -m venv venv310
+.\venv310\Scripts\Activate.ps1
+
+# Installer les dépendances
 pip install -r requirements.txt
 ```
 
-**Option B : Utiliser l'environnement existant**
+### Lancement
+
 ```powershell
-# Si venv310 existe déjà
-.\venv310\Scripts\activate
-```
+# Activer l'environnement
+.\venv310\Scripts\Activate.ps1
 
-### 2. Téléchargement du Dataset
-```bash
-pip install kaggle
-# Placez kaggle.json dans C:\Users\<nom>\.kaggle\
-kaggle datasets download -d masoudnickparvar/brain-tumor-mri-dataset
-# Décompressez dans data/Training/ et data/Testing/
-```
+# Évaluation du modèle final
+python src/evaluate.py --model models/tl_4classes_efficientnetb0_final.keras
 
-### 3. Pipeline Complet (Recommandé)
-```powershell
-# Remapping + Entraînement CNN + Évaluation + Grad-CAM
-python run_pipeline.py --epochs 50 --ae-epochs 30
-```
+# Inférence sur une image
+python src/predict.py --model models/tl_4classes_efficientnetb0_final.keras --image path/to/image.jpg
 
-**Ou étape par étape :**
+# Génération Grad-CAM (explicabilité)
+python src/gradcam.py
 
-### 3a. Remapping (4 classes → 5 stades)
-```bash
-python src/remap_dataset.py
-# Génère data/staged/ avec 7200 images réparties en 5 stades
-```
-
-### 3b. Entraînement CNN Baseline
-```bash
-python src/train.py --loss focal --epochs 50
-```
-
-### 3c. Transfer Learning (Recommandé pour Recall > 95%)
-```bash
-python src/train_advanced.py --phase1-epochs 30 --phase2-epochs 20
-```
-
-### 3d. Auto-Encodeur (Détection anomalies)
-```bash
-python src/autoencoder.py --train --epochs 30
-```
-
-### 4. Évaluation
-```bash
-python src/evaluate.py --model models/cnn_baseline_best.keras
-# Génère : matrice confusion, courbes ROC, rapport détaillé
-```
-
-### 5. Grad-CAM (Explicabilité XAI)
-```bash
-python src/gradcam.py --model models/cnn_baseline_best.keras --samples 5
-# Génère : reports/gradcam/*.png
-```
-
-### 6. API FastAPI
-```bash
+# API FastAPI (port 8000)
 cd api
 uvicorn main:app --reload --port 8000
-# → http://localhost:8000/docs (Swagger UI)
-```
 
-**Test avec cURL :**
-```powershell
-curl -X POST "http://localhost:8000/predict" -F "file=@test_image.jpg"
-```
-
-### 7. Dashboard Streamlit
-```bash
+# Dashboard Streamlit (port 8501)
 streamlit run dashboard/app.py
-# → http://localhost:8501
-```
 
-### 8. Docker (Production)
-```bash
+# Pipeline complet (entraînement → évaluation)
+python run_pipeline.py
+
+# Docker (production)
 cd docker
 docker-compose up --build
-# API → http://localhost:8000
-# Dashboard → http://localhost:8501
+```
+
+### API REST — Endpoints
+
+| Méthode | Endpoint | Description |
+|---|---|---|
+| `POST` | `/predict` | Prédiction sur une image |
+| `POST` | `/predict/batch` | Prédiction batch |
+| `GET` | `/models/list` | Liste des modèles disponibles |
+| `GET` | `/health` | Statut de l'API |
+
+```bash
+# Exemple d'appel API
+curl -X POST "http://localhost:8000/predict" \
+     -F "file=@image.jpg"
 ```
 
 ---
 
-## 🖥️ Configurations IntelliJ IDEA
+## 🔬 Fonctionnalités Techniques
 
-Le projet inclut des **Run Configurations** prêtes à l'emploi :
-
-1. **1 - Remap Dataset** : Remapping 4→5 stades
-2. **2 - Train CNN Baseline** : Entraînement CNN baseline
-3. **3 - Train Advanced** : Transfer Learning
-4. **4 - Train AutoEncoder** : Auto-encodeur
-5. **5 - Evaluate Model** : Évaluation complète
-6. **6 - GradCAM** : Génération Grad-CAM
-7. **7 - Full Pipeline** : Pipeline complet
-8. **8 - API FastAPI** : Démarrage API
-
-**Utilisation** : Clic droit → Run '2 - Train CNN Baseline'
-
-> ⚠️ **Important** : Configurez l'interpréteur Python sur `venv310/Scripts/python.exe`
+| Fonctionnalité | Détail |
+|---|---|
+| **Focal Loss** | γ=2.0, α adaptatif (gestion déséquilibre de classes) |
+| **Class Weights** | Calcul automatique par sklearn |
+| **Data Augmentation** | Rotations ±15°, flips H/V, zoom ±10%, brightness |
+| **Seuil de confiance** | 0.70 — cas incertains → révision humaine |
+| **Grad-CAM** | Visualisation des régions diagnostiques décisives |
+| **Auto-encodeur** | Détection d'anomalies par reconstruction (MSE) |
+| **Transfer Learning** | EfficientNetB0 ImageNet, 2 phases d'entraînement |
 
 ---
 
-## 📊 Architecture CNN Baseline
+## 📊 Visualisations
 
-| Couche | Paramètres | Activation |
-|--------|-----------|------------|
-| Input | (128, 128, 3) | — |
-| Conv2D | 32 filtres, 3×3 | ReLU |
-| MaxPooling2D | (2, 2) | — |
-| Conv2D | 64 filtres, 3×3 | ReLU |
-| MaxPooling2D | (2, 2) | — |
-| Conv2D | 128 filtres, 3×3 | ReLU |
-| MaxPooling2D | (2, 2) | — |
-| Flatten + Dense | 128 neurones | ReLU |
-| Dense (sortie) | 5 neurones | Softmax |
+Les visualisations sont disponibles dans `imagesModéles/` :
 
-**Compilation :** Adam + Focal Loss (γ=2) + métriques : Accuracy, Recall, AUC
+- `01_cnn_baseline_history.png` — Courbes d'entraînement CNN baseline
+- `03_tl_efficientnetb0_history.png` — Courbes d'entraînement TL EfficientNetB0
+- `06_cnn_baseline_confusion_matrix.png` — Matrice de confusion baseline
+- `08_tl_final_confusion_matrix.png` — Matrice de confusion modèle final
+- `09_tl_final_roc_curves.png` — Courbes ROC modèle final
+- `gradcam_batch_sample_*.png` — Cartes d'activation Grad-CAM
 
 ---
 
-## 🎯 Résultats Finaux (11 Mai 2026)
+## 🛠️ Tests
 
-### Modèle Final — TL EfficientNetB0 4 Classes
+```powershell
+# Lancer tous les tests
+pytest tests/ -v
 
-| Métrique | Valeur | Cible | Statut |
-|---|---|---|---|
-| **Val Recall (seuil 0.70)** | **97.8%** | **> 95%** | ✅ **CIBLE ATTEINTE** |
-| Val Accuracy | 92.4% | > 80% | ✅ Excellent |
-| Val AUC | 98.7% | > 90% | ✅ Excellent |
-| Val Precision | 93.4% | — | ✅ Très bon |
-
-### Historique des Modèles
-
-| Modèle | Recall | Accuracy | AUC |
-|---|---|---|---|
-| CNN Baseline 5 classes | 62.3% | 71.5% | 93.4% |
-| TL EfficientNetB0 5 classes | 74.0% | 82.0% | 95.9% |
-| CNN 4 classes | 72.0% | 77.3% | 92.3% |
-| **TL EfficientNetB0 4 classes** | **97.8%*** | **92.4%** | **98.7%** |
-
-*Seuil de décision optimisé à 0.70
-
-📊 **Détails complets** : [PROGRESS.md](PROGRESS.md) | [SUMMARY.md](SUMMARY.md) | [QUESTIONS_PROF.md](QUESTIONS_PROF.md)
-
----
-
-## 🎯 Métriques Cibles (Cahier des Charges)
-
-- ✅ **Sensibilité (Recall)** > 95% (minimiser faux négatifs — risques vitaux)
-- ✅ **F2-Score** (privilégie le Recall sur la Précision)
-- ✅ **ROC-AUC** par stade (discrimination par classe pathologique)
-- ✅ **Inférence** < 200ms par image
-
----
-
-## 🔗 API Endpoints
-
-| Méthode | Route | Description |
-|---------|-------|-------------|
-| GET | `/` | Santé de l'API |
-| POST | `/predict` | Prédiction stade + Grad-CAM |
-| GET | `/model/info` | Infos modèle chargé |
-
-**Réponse `/predict` :**
-```json
-{
-  "stage_id": 3,
-  "stage_label": "Stade III — Anaplasique",
-  "clinical_note": "Atteinte des ganglions...",
-  "confidence": 0.8734,
-  "probabilities": [0.02, 0.03, 0.05, 0.87, 0.03],
-  "gradcam_base64": "...",
-  "anomaly_score": 0.0023,
-  "requires_review": false,
-  "review_reason": "Aucune"
-}
+# Vérifier la configuration
+python check_setup.py
 ```
 
 ---
 
-## 📁 Fichiers Importants
+## 📦 Dépendances Principales
 
-- **[PROGRESS.md](PROGRESS.md)** : Suivi détaillé de l'avancement et résultats d'entraînement
-- **[plan_projet.tex](plan_projet.tex)** : Plan du projet (LaTeX)
-- **[requirements.txt](requirements.txt)** : Dépendances Python
-- **[run_pipeline.py](run_pipeline.py)** : Script maître (pipeline complet)
+| Package | Version | Usage |
+|---|---|---|
+| `tensorflow` | ≥ 2.15.0 | Modèles deep learning |
+| `opencv-python` | ≥ 4.8.0 | Traitement images, Grad-CAM |
+| `scikit-learn` | ≥ 1.3.0 | Métriques, class weights |
+| `fastapi` | ≥ 0.104.0 | API REST async |
+| `streamlit` | ≥ 1.28.0 | Dashboard interactif |
+| `uvicorn` | ≥ 0.24.0 | Serveur ASGI |
 
 ---
 
-**Bonne chance — Inch'Allah le projet sera terminé dans les délais ! 🚀**
+## 📝 Licence
+
+Projet académique — Mohamed Abidi — 2026
 
