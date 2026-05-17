@@ -1,13 +1,6 @@
-"""
-check_setup.py
-Script de vérification de l'environnement et du dataset.
-Exécutez ce script avant de lancer l'entraînement.
-"""
-
 import sys
 import os
 
-# Force UTF-8 pour les terminaux Windows (emojis)
 if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
@@ -18,22 +11,20 @@ print("=" * 60)
 print("  VÉRIFICATION DE L'ENVIRONNEMENT")
 print("=" * 60)
 
-# ── 1. Python ──────────────────────────────────────────────────────────
 print(f"\n[•] Python : {sys.version}")
 
-# ── 2. Dépendances ─────────────────────────────────────────────────────
 deps = {
-    "tensorflow": "TensorFlow/Keras",
-    "cv2":        "OpenCV",
-    "sklearn":    "Scikit-Learn",
-    "matplotlib": "Matplotlib",
-    "seaborn":    "Seaborn",
-    "numpy":      "NumPy",
-    "PIL":        "Pillow",
-    "fastapi":    "FastAPI",
-    "streamlit":  "Streamlit",
-    "pytest":     "Pytest",
-    "requests":   "Requests",
+                : "TensorFlow/Keras",
+         :        "OpenCV",
+             :    "Scikit-Learn",
+                : "Matplotlib",
+             :    "Seaborn",
+           :      "NumPy",
+         :        "Pillow",
+             :    "FastAPI",
+               :  "Streamlit",
+            :     "Pytest",
+              :   "Requests",
 }
 
 all_ok = True
@@ -46,7 +37,6 @@ for module, name in deps.items():
         print(f"  ❌ {name:20s} MANQUANT → pip install {module}")
         all_ok = False
 
-# ── 3. GPU ─────────────────────────────────────────────────────────────
 print("\n[•] GPU :")
 try:
     import tensorflow as tf
@@ -59,7 +49,6 @@ try:
 except Exception as e:
     print(f"  ❌ Erreur TF : {e}")
 
-# ── 4. Dataset ─────────────────────────────────────────────────────────
 print("\n[•] Dataset (4 classes) :")
 staged_4_path = os.path.join("data", "staged_4classes")
 training_path = os.path.join("data", "Training")
@@ -85,11 +74,9 @@ else:
     print("     kaggle datasets download -d masoudnickparvar/brain-tumor-mri-dataset")
     all_ok = False
 
-# ── 5. Modèles ─────────────────────────────────────────────────────────
 print("\n[•] Modèles entraînés :")
 models_dir = "models"
-model_files = [f for f in os.listdir(models_dir) if f.endswith((".keras", ".h5"))] \
-    if os.path.exists(models_dir) else []
+model_files = [f for f in os.listdir(models_dir) if f.endswith((".keras", ".h5"))]    if os.path.exists(models_dir) else []
 if model_files:
     for mf in sorted(model_files):
         size = os.path.getsize(os.path.join(models_dir, mf)) / 1e6
@@ -98,7 +85,6 @@ if model_files:
 else:
     print("  ℹ️  Aucun modèle → Lancez : python run_pipeline.py --tl-only")
 
-# ── 6. Rapports ────────────────────────────────────────────────────────
 print("\n[•] Rapports d'évaluation :")
 reports_dir = "reports"
 if os.path.exists(reports_dir):
@@ -112,14 +98,12 @@ if os.path.exists(reports_dir):
     if png_files:
         print(f"  ✅ {len(png_files)} visualisation(s) PNG")
 
-# ── 7. Services ────────────────────────────────────────────────────────
 print("\n[•] Services :")
 print("  API       : cd api && uvicorn main:app --reload --port 8000")
 print("  Dashboard : streamlit run dashboard/app.py")
 print("  Docker    : cd docker && docker-compose up --build")
 print("  Tests     : python -m pytest tests/ -v")
 
-# ── Résumé ─────────────────────────────────────────────────────────────
 print("\n" + "=" * 60)
 if all_ok:
     print("  ✅ Environnement prêt — Vous pouvez commencer l'entraînement !")
@@ -127,4 +111,3 @@ if all_ok:
 else:
     print("  ⚠️  Des problèmes ont été détectés — Corrigez-les avant de continuer.")
 print("=" * 60)
-

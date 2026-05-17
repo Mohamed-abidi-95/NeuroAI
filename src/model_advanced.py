@@ -1,29 +1,14 @@
-"""
-model_advanced.py
-Transfer Learning avec EfficientNetB0 (ou ResNet50V2).
-Phase 1 : Feature Extraction (couches gelées)
-Phase 2 : Fine-Tuning (dégel progressif)
-"""
-
 import tensorflow as tf
 from tensorflow.keras import layers, models, regularizers
 from tensorflow.keras.applications import EfficientNetB0, ResNet50V2
 
-
 def build_efficientnet(input_shape=(128, 128, 3), num_classes=5,
                        backbone="efficientnetb0"):
-    """
-    Construit le modèle de Transfer Learning.
-    backbone : "efficientnetb0" ou "resnet50v2"
-
-    NOTE : Le générateur de données doit envoyer des pixels [0, 255] (rescale=False)
-    car EfficientNetB0 et ResNet50V2 ont leur propre couche de preprocessing intégrée.
-    """
+           
     inputs = layers.Input(shape=input_shape)
 
-    # ── Prétraitement backbone ─────────────────────────────────────────────
     if backbone == "efficientnetb0":
-        # EfficientNetB0 : preprocessing intégré (pixels [0,255] → normalisation interne)
+
         base_model = EfficientNetB0(
             include_top=False,
             weights="imagenet",
@@ -31,7 +16,7 @@ def build_efficientnet(input_shape=(128, 128, 3), num_classes=5,
         )
         print("[✓] Backbone : EfficientNetB0 (ImageNet) — preprocessing intégré")
     else:
-        # ResNet50V2 : preprocessing explicite requis
+
         x_preprocess = tf.keras.applications.resnet_v2.preprocess_input(inputs)
         base_model = ResNet50V2(
             include_top=False,
@@ -40,10 +25,8 @@ def build_efficientnet(input_shape=(128, 128, 3), num_classes=5,
         )
         print("[✓] Backbone : ResNet50V2 (ImageNet) — preprocessing intégré")
 
-    # ── Phase 1 : Feature Extraction — tout geler ─────────────────────────
     base_model.trainable = False
 
-    # Tête de classification
     x = base_model.output
     x = layers.GlobalAveragePooling2D()(x)
     x = layers.BatchNormalization()(x)
@@ -59,9 +42,8 @@ def build_efficientnet(input_shape=(128, 128, 3), num_classes=5,
                          name=f"TL_{backbone}_TumorStaging")
     return model, base_model
 
-
 def compile_phase1(model, learning_rate=1e-3, loss_fn=None):
-    """Compilation Phase 1 (Feature Extraction)."""
+                                                   
     if loss_fn is None:
         loss_fn = "categorical_crossentropy"
     model.compile(
@@ -75,12 +57,9 @@ def compile_phase1(model, learning_rate=1e-3, loss_fn=None):
     print(f"[Phase 1] Paramètres entraînables : {trainable:,}")
     return model
 
-
 def unfreeze_for_finetuning(model, base_model, unfreeze_from_layer: int = -30,
                              learning_rate=1e-5, loss_fn=None):
-    """
-    Phase 2 : Fine-Tuning — dégel des `unfreeze_from_layer` dernières couches.
-    """
+           
     base_model.trainable = True
     for layer in base_model.layers[:unfreeze_from_layer]:
         layer.trainable = False
@@ -88,7 +67,7 @@ def unfreeze_for_finetuning(model, base_model, unfreeze_from_layer: int = -30,
         if not isinstance(layer, layers.BatchNormalization):
             layer.trainable = True
         else:
-            layer.trainable = False   # BN figé pour stabilité
+            layer.trainable = False                           
 
     if loss_fn is None:
         loss_fn = "categorical_crossentropy"
@@ -105,9 +84,7 @@ def unfreeze_for_finetuning(model, base_model, unfreeze_from_layer: int = -30,
     print(f"          Paramètres entraînables : {trainable:,}")
     return model
 
-
 if __name__ == "__main__":
     model, base = build_efficientnet()
     model = compile_phase1(model)
     model.summary(line_length=100)
-

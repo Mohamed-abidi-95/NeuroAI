@@ -1,10 +1,3 @@
-"""
-autoencoder.py
-Auto-encodeur convolutif pour la détection d'anomalies.
-Entraîné uniquement sur les images normales (stage_0).
-Une erreur de reconstruction élevée signale un cas "Suspect/Inconnu".
-"""
-
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -18,14 +11,9 @@ IMG_SIZE    = (128, 128)
 LATENT_DIM  = 256
 os.makedirs(REPORTS_DIR, exist_ok=True)
 
-
 def build_autoencoder(input_shape=(128, 128, 3)):
-    """
-    Auto-encodeur convolutif symétrique.
-    Encoder : Conv2D(32) → Conv2D(64) → Conv2D(128) → Dense(latent)
-    Decoder : Dense → ConvT(128) → ConvT(64) → ConvT(32) → Conv2D(3)
-    """
-    # ── Encoder ───────────────────────────────────────────────────────────
+           
+
     inputs = layers.Input(shape=input_shape, name="encoder_input")
 
     x = layers.Conv2D(32, (3, 3), activation="relu", padding="same", strides=2)(inputs)
@@ -35,14 +23,12 @@ def build_autoencoder(input_shape=(128, 128, 3)):
     x = layers.Conv2D(128, (3, 3), activation="relu", padding="same", strides=2)(x)
     x = layers.BatchNormalization()(x)
 
-    # Forme avant flatten pour le décodeur
     shape_before_flatten = x.shape[1:]
     x = layers.Flatten()(x)
     encoded = layers.Dense(LATENT_DIM, activation="relu", name="latent")(x)
 
     encoder = models.Model(inputs, encoded, name="Encoder")
 
-    # ── Decoder ───────────────────────────────────────────────────────────
     latent_inputs = layers.Input(shape=(LATENT_DIM,), name="decoder_input")
 
     x = layers.Dense(
@@ -62,7 +48,6 @@ def build_autoencoder(input_shape=(128, 128, 3)):
 
     decoder = models.Model(latent_inputs, decoded, name="Decoder")
 
-    # ── Auto-encodeur complet ─────────────────────────────────────────────
     autoencoder_output = decoder(encoder(inputs))
     autoencoder = models.Model(inputs, autoencoder_output, name="AutoEncoder_TumorAnomalyDetector")
 
@@ -73,33 +58,24 @@ def build_autoencoder(input_shape=(128, 128, 3)):
     )
     return autoencoder, encoder, decoder
 
-
 def compute_reconstruction_error(autoencoder, X: np.ndarray) -> np.ndarray:
-    """Calcule l'erreur MSE pixel-wise pour chaque image."""
+                                                            
     X_recon = autoencoder.predict(X, verbose=0)
     mse = np.mean((X - X_recon) ** 2, axis=(1, 2, 3))
     return mse, X_recon
 
-
 def find_anomaly_threshold(mse_normal: np.ndarray, percentile: float = 95) -> float:
-    """
-    Seuil d'anomalie = percentile des erreurs sur données saines.
-    Par défaut : 95e percentile.
-    """
+           
     threshold = float(np.percentile(mse_normal, percentile))
     print("[OK] Seuil d'anomalie (p{:.0f}) = {:.6f}".format(percentile, threshold))
     return threshold
 
-
 def detect_anomalies(mse: np.ndarray, threshold: float):
-    """Retourne un masque booléen : True = anomalie."""
+                                                       
     return mse > threshold
 
-
 def train_autoencoder(X_normal: np.ndarray, epochs: int = 50, batch_size: int = 32):
-    """
-    Entraîne l'auto-encodeur uniquement sur les images saines (stage_0).
-    """
+           
     print("\n" + "=" * 60)
     print("  ENTRAÎNEMENT — AUTO-ENCODEUR (Détection d'Anomalies)")
     print("=" * 60)
@@ -121,7 +97,7 @@ def train_autoencoder(X_normal: np.ndarray, epochs: int = 50, batch_size: int = 
     ]
 
     history = autoencoder.fit(
-        X_normal, X_normal,          # Input = Target (reconstruction)
+        X_normal, X_normal,                                           
         epochs=epochs,
         batch_size=batch_size,
         validation_split=0.15,
@@ -133,7 +109,6 @@ def train_autoencoder(X_normal: np.ndarray, epochs: int = 50, batch_size: int = 
     encoder.save(os.path.join(MODELS_DIR, "encoder_final.keras"))
     print("[OK] Auto-encodeur sauvegarde.")
 
-    # Courbe de loss
     plt.figure(figsize=(10, 4))
     plt.plot(history.history["loss"],     label="Train Loss", color="royalblue")
     plt.plot(history.history["val_loss"], label="Val Loss",   color="tomato")
@@ -147,11 +122,10 @@ def train_autoencoder(X_normal: np.ndarray, epochs: int = 50, batch_size: int = 
 
     return autoencoder, encoder, decoder
 
-
 def visualize_reconstruction(autoencoder, X_samples: np.ndarray,
                               mse: np.ndarray, threshold: float,
                               n: int = 8):
-    """Visualise les reconstructions et les erreurs."""
+                                                       
     indices = np.random.choice(len(X_samples), size=min(n, len(X_samples)), replace=False)
     fig, axes = plt.subplots(3, len(indices), figsize=(2.5 * len(indices), 8))
     fig.suptitle("Auto-Encodeur : Originals | Reconstructions | Erreurs", fontsize=12)
@@ -183,7 +157,6 @@ def visualize_reconstruction(autoencoder, X_samples: np.ndarray,
     plt.close()
     print("[OK] Visualisation reconstruction : {}".format(path))
 
-
 if __name__ == "__main__":
     import argparse
     from data_pipeline import load_dataset_as_arrays
@@ -197,7 +170,6 @@ if __name__ == "__main__":
     y_train_raw = np.argmax(y_train, axis=1)
     y_test_raw  = np.argmax(y_test, axis=1)
 
-    # Images normales uniquement (stage_0)
     X_normal = X_train[y_train_raw == 0]
     print(f"Images saines (stage_0) : {len(X_normal)}")
 
@@ -220,4 +192,3 @@ if __name__ == "__main__":
           f"({n_anom/len(X_test)*100:.1f}%)")
 
     visualize_reconstruction(ae, X_test, mse_test, threshold)
-

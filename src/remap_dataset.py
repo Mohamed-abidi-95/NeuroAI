@@ -1,44 +1,25 @@
-"""
-remap_dataset.py
-Restructure le dataset Brain Tumor MRI (4 classes) en 5 dossiers stades (0 à IV)
-
-Dataset disponible :
-  data/Training/{glioma, meningioma, notumor, pituitary}/
-  data/Testing/{glioma, meningioma, notumor, pituitary}/
-
-Mapping WHO :
-  notumor    -> stage_0  (contrôle négatif)
-  meningioma -> stage_1  (WHO Grade I - bénin)
-  pituitary  -> stage_2  (extension locale)
-  glioma 50% -> stage_3  (WHO Grade III - anaplasique)
-  glioma 50% -> stage_4  (WHO Grade IV - glioblastome GBM)
-"""
-
 import os
 import shutil
 import glob
 import random
 
-# ─── Chemins ──────────────────────────────────────────────────────────────────
 BASE_DIR = "data"
 SPLITS   = ["Training", "Testing"]
 DATA_OUT = os.path.join("data", "staged")
 STAGES   = ["stage_0", "stage_1", "stage_2", "stage_3", "stage_4"]
 
 MAPPING = {
-    "notumor":    "stage_0",
-    "meningioma": "stage_1",
-    "pituitary":  "stage_2",
+             :    "stage_0",
+                : "stage_1",
+               :  "stage_2",
 }
 
 SEED = 42
-
 
 def create_dirs():
     for stage in STAGES:
         os.makedirs(os.path.join(DATA_OUT, stage), exist_ok=True)
     print("[✓] Dossiers staged/ créés.")
-
 
 def copy_mapped_classes():
     total = 0
@@ -54,7 +35,6 @@ def copy_mapped_classes():
         print(f"  {src_class:15s} -> {dst_stage}  ({count} images)")
         total += count
     return total
-
 
 def split_glioma():
     all_glioma = []
@@ -82,7 +62,6 @@ def split_glioma():
     print(f"  {'glioma (50%)':15s} -> stage_4  ({count4} images)")
     return count3 + count4
 
-
 def print_summary():
     print("\n─── Résumé du Dataset Remappé ───────────────────────────────")
     total = 0
@@ -94,7 +73,6 @@ def print_summary():
         total += n
     print(f"  {'TOTAL':10s}:  {total:5d} images")
     print("─────────────────────────────────────────────────────────────")
-
 
 if __name__ == "__main__":
     print("=" * 60)

@@ -1,15 +1,3 @@
-"""
-src/predict.py
-Script d'inférence CLI — Prédiction d'une ou plusieurs images depuis la ligne de commande.
-Fonctionne en mode standalone, sans API.
-
-Usage :
-    python src/predict.py --image path/to/image.jpg
-    python src/predict.py --image path/to/image.jpg --gradcam
-    python src/predict.py --dir path/to/folder/ --output results.csv
-    python src/predict.py --image img.jpg --model models/cnn_4classes_best.keras --gradcam
-"""
-
 import os
 import sys
 import argparse
@@ -18,14 +6,12 @@ import csv
 import numpy as np
 from PIL import Image
 
-# -- Ajout du dossier src au path -------------------------------------------
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import tensorflow as tf
 from losses import FocalLoss
 from gradcam import visualize_gradcam
 
-# -- Labels ------------------------------------------------------------------
 LABELS_4 = {
     0: "Stage 0 - No Tumor (Negative Control)",
     1: "Stage I  - Meningioma (WHO Grade I — Benign)",
@@ -57,9 +43,8 @@ CONF_THRESHOLD = 0.70
 MODELS_DIR     = "models"
 GRADCAM_DIR    = "reports/gradcam"
 
-
 def find_best_model():
-    """Retourne le meilleur modèle disponible (priorité TL > CNN)."""
+                                                                     
     candidates = [
         os.path.join(MODELS_DIR, "tl_4classes_efficientnetb0_final.keras"),
         os.path.join(MODELS_DIR, "tl_4classes_resnet50v2_final.keras"),
@@ -75,9 +60,8 @@ def find_best_model():
             return c
     return None
 
-
 def load_model(model_path):
-    """Charge un modèle Keras avec FocalLoss custom."""
+                                                       
     print("[.] Chargement du modèle : {}".format(model_path))
     model = tf.keras.models.load_model(
         model_path, custom_objects={"FocalLoss": FocalLoss})
@@ -87,36 +71,33 @@ def load_model(model_path):
     print("[OK] Modèle chargé | {} classes | {}×{} px".format(num_classes, img_h, img_w))
     return model, num_classes, (img_h, img_w)
 
-
 def preprocess_image(img_path, img_size, num_classes, is_tl=False):
-    """Charge et prépare une image pour l'inférence."""
+                                                       
     img = Image.open(img_path).convert("RGB").resize(img_size)
     arr = np.array(img, dtype=np.float32)
-    # TL models (224×224) attendent [0,255] ; CNN baseline (128×128) attend [0,1]
+
     if not is_tl:
         arr = arr / 255.0
     return np.expand_dims(arr, axis=0), arr
 
-
 def predict_single(model, img_batch, num_classes, labels, clinical_notes):
-    """Inference sur une image : retourne un dict de résultats."""
+                                                                  
     y_proba    = model.predict(img_batch, verbose=0)[0]
     stage_id   = int(np.argmax(y_proba))
     confidence = float(np.max(y_proba))
     requires_review = confidence < CONF_THRESHOLD
 
     return {
-        "stage_id":        stage_id,
-        "stage_label":     labels.get(stage_id, "Unknown"),
-        "clinical_note":   clinical_notes.get(stage_id, ""),
-        "confidence":      round(confidence, 4),
-        "probabilities":   [round(float(p), 4) for p in y_proba],
-        "requires_review": requires_review,
+                  :        stage_id,
+                     :     labels.get(stage_id, "Unknown"),
+                       :   clinical_notes.get(stage_id, ""),
+                    :      round(confidence, 4),
+                       :   [round(float(p), 4) for p in y_proba],
+                         : requires_review,
     }
 
-
 def print_result(result, img_path):
-    """Affiche les résultats de manière lisible."""
+                                                   
     sid  = result["stage_id"]
     lbl  = result["stage_label"]
     conf = result["confidence"]
@@ -139,14 +120,13 @@ def print_result(result, img_path):
 
     if rev:
         print("\n  [!] RÉVISION MANUELLE REQUISE  "
-              "(confiance {:.1%} < seuil {:.0%})".format(conf, CONF_THRESHOLD))
+                                                 .format(conf, CONF_THRESHOLD))
     else:
         print("\n  [OK] Diagnostic confiant")
     print(sep)
 
-
 def process_image(model, img_path, num_classes, is_tl, save_gradcam=False):
-    """Traite une image et retourne le résultat."""
+                                                   
     labels         = LABELS_4 if num_classes <= 4 else LABELS_5
     clinical_notes = CLINICAL_4 if num_classes <= 4 else CLINICAL_5
 
@@ -174,7 +154,6 @@ def process_image(model, img_path, num_classes, is_tl, save_gradcam=False):
 
     return result
 
-
 def main():
     parser = argparse.ArgumentParser(
         description="Inférence CLI — Détection & Classification des Stades de Tumeurs")
@@ -195,21 +174,18 @@ def main():
         print("\n[!] Spécifiez --image ou --dir.")
         sys.exit(1)
 
-    # -- Chercher le modèle ---------------------------------------------------
     model_path = args.model or find_best_model()
     if model_path is None or not os.path.exists(model_path):
         print("[!] Aucun modèle trouvé. Entraînez d'abord ou spécifiez --model.")
         sys.exit(1)
 
-    # -- Charger le modèle ----------------------------------------------------
     model, num_classes, img_size = load_model(model_path)
-    # Détecter si c'est un modèle TL (224×224) ou CNN (128×128)
+
     is_tl = (img_size[0] >= 224)
     print("     Type : {} | img_size : {}×{}".format(
-        "Transfer Learning" if is_tl else "CNN Baseline",
+                            if is_tl else "CNN Baseline",
         img_size[0], img_size[1]))
 
-    # -- Mode image unique ----------------------------------------------------
     if args.image:
         if not os.path.exists(args.image):
             print("[!] Fichier introuvable : {}".format(args.image))
@@ -217,7 +193,6 @@ def main():
         process_image(model, args.image, num_classes, is_tl,
                       save_gradcam=args.gradcam)
 
-    # -- Mode dossier ---------------------------------------------------------
     elif args.dir:
         if not os.path.isdir(args.dir):
             print("[!] Dossier introuvable : {}".format(args.dir))
@@ -245,25 +220,24 @@ def main():
                 result = process_image(model, img_path, num_classes, is_tl,
                                        save_gradcam=args.gradcam)
                 rows.append({
-                    "file":            os.path.basename(img_path),
-                    "stage_id":        result["stage_id"],
-                    "stage_label":     result["stage_label"],
-                    "confidence":      "{:.1%}".format(result["confidence"]),
-                    "requires_review": "YES" if result["requires_review"] else "no",
-                    "clinical_note":   result["clinical_note"],
+                          :            os.path.basename(img_path),
+                              :        result["stage_id"],
+                                 :     result["stage_label"],
+                                :      "{:.1%}".format(result["confidence"]),
+                                     : "YES" if result["requires_review"] else "no",
+                                   :   result["clinical_note"],
                 })
             except Exception as e:
                 print("[!] Erreur sur {} : {}".format(img_path, e))
                 rows.append({
-                    "file":            os.path.basename(img_path),
-                    "stage_id":        -1,
-                    "stage_label":     "ERROR",
-                    "confidence":      "0%",
-                    "requires_review": "YES",
-                    "clinical_note":   str(e),
+                          :            os.path.basename(img_path),
+                              :        -1,
+                                 :     "ERROR",
+                                :      "0%",
+                                     : "YES",
+                                   :   str(e),
                 })
 
-        # Récapitulatif
         print("\n" + "=" * 65)
         print("  RÉCAPITULATIF ({} images)".format(len(rows)))
         print("=" * 65)
@@ -275,20 +249,16 @@ def main():
         urgent = sum(1 for r in rows if r["requires_review"] == "YES")
         print("  Révision  : {:3d} / {} cas".format(urgent, len(rows)))
 
-        # Sauvegarde CSV
         if args.output:
             with open(args.output, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(
                     f, fieldnames=["file", "stage_id", "stage_label",
-                                   "confidence", "requires_review", "clinical_note"])
+                                               , "requires_review", "clinical_note"])
                 writer.writeheader()
                 writer.writerows(rows)
             print("\n[OK] Résultats exportés : {}".format(args.output))
         else:
             print("\n[INFO] Ajoutez --output results.csv pour exporter les résultats.")
 
-
 if __name__ == "__main__":
     main()
-
-

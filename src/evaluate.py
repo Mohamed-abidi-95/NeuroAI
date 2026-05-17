@@ -1,13 +1,3 @@
-"""
-evaluate.py
-Evaluation clinique complete du modele - 4 ou 5 classes (auto-detection).
-- Accuracy, Sensibilite (Recall), F2-Score
-- ROC-AUC par stade
-- Matrice de confusion
-- Detection d'incertitude probabiliste (seuil Softmax < 0.7)
-- Optimisation du seuil de decision pour maximiser le recall
-"""
-
 import os
 import sys
 import argparse
@@ -28,32 +18,29 @@ REPORTS_DIR  = "reports"
 CONFIDENCE_THRESHOLD = 0.7
 os.makedirs(REPORTS_DIR, exist_ok=True)
 
-# Labels par nombre de classes
 LABELS_4 = ["Stage0-NoTumor", "Stage1-Meningioma", "Stage2-Pituitary", "Stage3-4-Glioma"]
 LABELS_5 = ["Stage0-NoTumor", "Stage1-Meningioma", "Stage2-Pituitary", "Stage3-Anaplastic", "Stage4-GBM"]
 
-# Mapping dossiers Testing/ vers index
 FOLDER_TO_IDX_4 = {
-    "notumor":    0,
-    "meningioma": 1,
-    "pituitary":  2,
-    "glioma":     3,
+             :    0,
+                : 1,
+               :  2,
+            :     3,
 }
 FOLDER_TO_IDX_5 = {
-    "notumor":    0,
-    "meningioma": 1,
-    "pituitary":  2,
-    "glioma":     3,
+             :    0,
+                : 1,
+               :  2,
+            :     3,
 }
 
-
 def find_best_model():
-    """Selectionne automatiquement le meilleur modele disponible."""
+                                                                    
     priority = [
-        "tl_4classes_efficientnetb0_final.keras",
-        "tl_efficientnetb0_final.keras",
-        "cnn_4classes_final.keras",
-        "cnn_baseline_final.keras",
+                                                ,
+                                       ,
+                                  ,
+                                  ,
     ]
     for name in priority:
         path = os.path.join(MODELS_DIR, name)
@@ -64,13 +51,8 @@ def find_best_model():
             return os.path.join(MODELS_DIR, f)
     return None
 
-
 def load_test_data(data_dir: str, img_size: tuple, num_classes: int, normalize: bool = True):
-    """Charge les images du dossier Testing/ et retourne (X, y).
-    
-    normalize=True  : valeurs [0, 1]  -> CNN baseline (128x128)
-    normalize=False : valeurs [0, 255] -> EfficientNetB0 (224x224, preprocessing intégré)
-    """
+           
     folder_map = FOLDER_TO_IDX_4 if num_classes <= 4 else FOLDER_TO_IDX_5
     X, y = [], []
     for folder, idx in folder_map.items():
@@ -94,9 +76,8 @@ def load_test_data(data_dir: str, img_size: tuple, num_classes: int, normalize: 
                 print("[WARN] Impossible de charger {} : {}".format(fname, e))
     return np.array(X), np.array(y)
 
-
 def evaluate_model(model, X_test, y_true, class_labels, model_name="model"):
-    """Evaluation complete avec metriques, ROC, matrice de confusion."""
+                                                                        
     print("\n" + "=" * 60)
     print("  EVALUATION : {}".format(model_name))
     print("=" * 60)
@@ -132,7 +113,6 @@ def evaluate_model(model, X_test, y_true, class_labels, model_name="model"):
     print("[INCERTAINS] {} cas avec confiance < {:.0%}  ({:.1f}%)".format(
         n_uncertain, CONFIDENCE_THRESHOLD, n_uncertain / len(y_true) * 100))
 
-    # Sauvegarder les metriques
     metrics_path = os.path.join(REPORTS_DIR, "{}_metrics.txt".format(model_name))
     with open(metrics_path, "w", encoding="utf-8") as f:
         f.write("MODEL: {}\n".format(model_name))
@@ -147,7 +127,6 @@ def evaluate_model(model, X_test, y_true, class_labels, model_name="model"):
                                        target_names=class_labels, zero_division=0))
     print("[OK] Metriques sauvegardees : {}".format(metrics_path))
 
-    # Matrice de confusion
     cm = confusion_matrix(y_true, y_pred)
     fig, ax = plt.subplots(figsize=(8, 6))
     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
@@ -161,7 +140,6 @@ def evaluate_model(model, X_test, y_true, class_labels, model_name="model"):
     plt.close()
     print("[OK] Matrice de confusion : {}".format(cm_path))
 
-    # Courbes ROC
     colors = ["steelblue", "tomato", "seagreen", "orange", "purple"]
     fig, ax = plt.subplots(figsize=(9, 7))
     for i, label in enumerate(class_labels):
@@ -183,13 +161,12 @@ def evaluate_model(model, X_test, y_true, class_labels, model_name="model"):
     print("[OK] Courbes ROC : {}".format(roc_path))
 
     return {
-        "accuracy":    acc,
-        "recall":      recall,
-        "f2":          f2,
-        "auc":         auc,
-        "n_uncertain": n_uncertain,
+                  :    acc,
+                :      recall,
+            :          f2,
+             :         auc,
+                     : n_uncertain,
     }
-
 
 def main():
     parser = argparse.ArgumentParser(description="Evaluation clinique du modele")
@@ -212,7 +189,6 @@ def main():
     model_name = os.path.splitext(os.path.basename(model_path))[0]
     print("\n[MODELE] {}".format(model_path))
 
-    # Charger le threshold si disponible
     threshold_path = model_path.replace(".keras", "_threshold.txt")
     if os.path.exists(threshold_path):
         with open(threshold_path) as f:
@@ -233,8 +209,7 @@ def main():
     img_height, img_width = model.input_shape[1:3]
     num_classes = int(model.output_shape[-1])
     img_size = (img_height, img_width)
-    # EfficientNetB0 (224x224) : preprocessing intégré, images en [0, 255]
-    # CNN baseline (128x128)   : normalisation [0, 1] manuelle
+
     normalize = (img_height < 224)
     print("[INFO] Input shape : {}x{} | Classes : {} | Normalize: {}".format(
         img_height, img_width, num_classes, normalize))
@@ -266,7 +241,5 @@ def main():
     print("=" * 60)
     print("[OK] Evaluation terminee. Rapports dans : {}".format(REPORTS_DIR))
 
-
 if __name__ == "__main__":
     main()
-

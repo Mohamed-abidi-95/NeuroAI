@@ -1,10 +1,3 @@
-"""
-train_4classes_tl.py - Transfer Learning EfficientNetB0 sur 4 classes.
-Objectif : val_recall > 95%
-Phase 1 - Feature Extraction (backbone ImageNet gele)
-Phase 2 - Fine-Tuning (dernieres couches degelees, lr tres faible)
-"""
-
 import sys
 import os
 import argparse
@@ -24,7 +17,6 @@ BATCH_SIZE  = 32
 NUM_CLASSES = 4
 
 os.makedirs(MODELS_DIR, exist_ok=True)
-
 
 def get_generators_4classes_tl():
     train_datagen = ImageDataGenerator(
@@ -52,7 +44,6 @@ def get_generators_4classes_tl():
     print("     Train   : {} images".format(train_gen.samples))
     print("     Val     : {} images".format(val_gen.samples))
     return train_gen, val_gen
-
 
 def build_tl_4classes(backbone="efficientnetb0"):
     inputs = tf.keras.layers.Input(shape=(*IMG_SIZE, 3))
@@ -99,13 +90,12 @@ def build_tl_4classes(backbone="efficientnetb0"):
                            name="TL_{}_4Classes".format(backbone))
     return model, base
 
-
 def compile_model(model, lr, loss_fn):
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=lr),
         loss=loss_fn,
         metrics=[
-            "accuracy",
+                      ,
             tf.keras.metrics.Recall(name="recall"),
             tf.keras.metrics.Precision(name="precision"),
             tf.keras.metrics.AUC(name="auc"),
@@ -114,7 +104,6 @@ def compile_model(model, lr, loss_fn):
     trainable = sum([tf.size(w).numpy() for w in model.trainable_variables])
     print("     Params entrainables : {:,}".format(trainable))
     return model
-
 
 def get_callbacks(phase, patience_es=12, patience_lr=5):
     return [
@@ -131,7 +120,6 @@ def get_callbacks(phase, patience_es=12, patience_lr=5):
             min_lr=1e-8, mode="max", verbose=1,
         ),
     ]
-
 
 def optimize_threshold(model, val_gen):
     print("\n[.] Optimisation du seuil de decision...")
@@ -165,7 +153,6 @@ def optimize_threshold(model, val_gen):
     print("     Seuil optimal : {:.2f}  -> recall={:.1f}%".format(
         best_thresh, best_recall * 100))
     return best_thresh
-
 
 def plot_history(h1, h2, backbone):
     fig, axes = plt.subplots(1, 4, figsize=(22, 5))
@@ -201,7 +188,6 @@ def plot_history(h1, h2, backbone):
     plt.savefig(path, dpi=150)
     plt.close()
     print("[OK] Courbes sauvegardees : {}".format(path))
-
 
 def main():
     parser = argparse.ArgumentParser()
@@ -303,7 +289,6 @@ def main():
     plot_history(h1, h2, args.backbone)
     print("\n[OK] Prochaine etape :")
     print("     python src/evaluate.py --model {}".format(final_path))
-
 
 if __name__ == "__main__":
     main()

@@ -1,15 +1,3 @@
-"""
-train_advanced.py
-Entraînement Transfer Learning (EfficientNetB0) en 2 phases :
-  Phase 1 — Feature Extraction (backbone gelé, ~30 epochs)
-  Phase 2 — Fine-Tuning       (30 dernières couches dégelées, ~20 epochs)
-
-Usage :
-    python src/train_advanced.py
-    python src/train_advanced.py --backbone resnet50v2
-    python src/train_advanced.py --phase1-epochs 20 --phase2-epochs 15
-"""
-
 import os
 import sys
 import argparse
@@ -17,7 +5,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
 
-# ── Import des modules du projet ─────────────────────────────────────────────
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from data_pipeline import get_generators, get_class_weights
 from model_advanced import build_efficientnet, compile_phase1, unfreeze_for_finetuning
@@ -27,9 +14,8 @@ MODELS_DIR = "models"
 os.makedirs(MODELS_DIR, exist_ok=True)
 os.makedirs("logs", exist_ok=True)
 
-
 def get_callbacks_tl(phase: str, patience: int = 10):
-    """Callbacks pour Transfer Learning."""
+                                           
     monitor = "val_accuracy"
     return [
         tf.keras.callbacks.ModelCheckpoint(
@@ -57,9 +43,8 @@ def get_callbacks_tl(phase: str, patience: int = 10):
         ),
     ]
 
-
 def plot_tl_history(h1, h2):
-    """Sauvegarde les courbes des 2 phases d'entraînement."""
+                                                             
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
     fig.suptitle("Transfer Learning EfficientNetB0 — Détection Stades Tumoraux", fontsize=13)
 
@@ -91,7 +76,6 @@ def plot_tl_history(h1, h2):
     plt.close()
     print(f"[✓] Courbes TL sauvegardées : {path}")
 
-
 def main():
     parser = argparse.ArgumentParser(description="Transfer Learning — Détection Tumeurs")
     parser.add_argument("--backbone",      choices=["efficientnetb0", "resnet50v2"],
@@ -110,14 +94,10 @@ def main():
     print(f"  Phase 2  : {args.phase2_epochs} epochs (Fine-Tuning)")
     print("=" * 60)
 
-    # ── Données ───────────────────────────────────────────────────────────
-    # IMPORTANT : rescale=False car EfficientNetB0 a son propre preprocessing
-    # interne qui attend des pixels [0, 255] et les normalise lui-même.
     train_gen, val_gen = get_generators(rescale=False)
     labels = train_gen.classes
     class_weights = get_class_weights(labels)
 
-    # ── Focal Loss ────────────────────────────────────────────────────────
     if args.loss == "focal":
         counts = {i: int(np.sum(labels == i)) for i in range(5)}
         alpha  = compute_focal_alpha(counts)
@@ -126,12 +106,10 @@ def main():
     else:
         loss_fn = None
 
-    # ── Construction du modèle ────────────────────────────────────────────
     model, base_model = build_efficientnet(backbone=args.backbone)
     model = compile_phase1(model, learning_rate=1e-3, loss_fn=loss_fn)
     print(f"\n[•] Paramètres totaux : {model.count_params():,}")
 
-    # ── PHASE 1 : Feature Extraction ─────────────────────────────────────
     print(f"\n[Phase 1] Feature Extraction — {args.phase1_epochs} epochs\n")
     h1 = model.fit(
         train_gen,
@@ -142,7 +120,6 @@ def main():
         verbose=1,
     )
 
-    # ── PHASE 2 : Fine-Tuning ─────────────────────────────────────────────
     print(f"\n[Phase 2] Fine-Tuning (dégel couches {args.unfreeze}:) — {args.phase2_epochs} epochs\n")
     model = unfreeze_for_finetuning(
         model, base_model,
@@ -160,12 +137,10 @@ def main():
         verbose=1,
     )
 
-    # ── Sauvegarde finale ─────────────────────────────────────────────────
     final_path = os.path.join(MODELS_DIR, f"tl_{args.backbone}_final.keras")
     model.save(final_path)
     print(f"\n[✓] Modèle TL sauvegardé : {final_path}")
 
-    # ── Rapport ───────────────────────────────────────────────────────────
     best_p2_acc    = max(h2.history.get("val_accuracy", [0]))
     best_p2_recall = max(h2.history.get("val_recall",   [0]))
     best_p2_auc    = max(h2.history.get("val_auc",      [0]))
@@ -184,7 +159,5 @@ def main():
 
     print(f"\n[✓] Évaluation : python src/evaluate.py --model {final_path}")
 
-
 if __name__ == "__main__":
     main()
-

@@ -1,8 +1,3 @@
-"""
-dashboard/app.py — NeuroAI v4.0
-Clean white medical-grade UI.
-"""
-
 import io, os, base64, requests
 import streamlit as st
 import pandas as pd
@@ -145,7 +140,6 @@ hr { border: none; border-top: 1px solid #E2E8F0 !important; margin: 0.8rem 0 !i
 </style>
 """, unsafe_allow_html=True)
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
 @st.cache_data(ttl=20)
 def api_health(url):
     try:
@@ -173,27 +167,26 @@ def clinical_report_txt(res, fname, ts):
     lmap  = LABELS_4 if n <= 4 else LABELS_5
     probs = res["probabilities"]
     lines = [
-        "="*60, "  NEUROAI — CLINICAL DIAGNOSTIC REPORT", "="*60,
+           *60, "  NEUROAI — CLINICAL DIAGNOSTIC REPORT", "="*60,
         f"Date       : {ts}", f"File       : {fname}",
         f"Model      : EfficientNetB0 TL · 4-Class WHO Staging", "",
-        "-"*60, "  RESULT", "-"*60,
+           *60, "  RESULT", "-"*60,
         f"Stage      : {lbl[0]}",  f"WHO Grade  : {lbl[3]}",
         f"Risk       : {lbl[4]}",  f"Confidence : {res['confidence']*100:.1f}%",
         f"Anomaly    : {res['anomaly_score']:.6f}",
         f"Review     : {'YES — '+res['review_reason'] if res['requires_review'] else 'NO'}", "",
-        "-"*60, "  CLASS PROBABILITIES", "-"*60,
+           *60, "  CLASS PROBABILITIES", "-"*60,
     ]
     for i, p in enumerate(probs):
         nm = lmap.get(i,(str(i),))[0]
         b  = "█"*int(p*30) + "░"*(30-int(p*30))
         lines.append(f"  {nm:<26} {b} {p*100:5.1f}%")
     lines += ["", "-"*60,"  CLINICAL NOTE","-"*60, res.get("clinical_note","N/A"), "",
-        "="*60,"  DISCLAIMER","="*60,
-        "Research tool only. Does NOT replace medical diagnosis.",
-        "All results must be validated by a qualified physician.","="*60]
+           *60,"  DISCLAIMER","="*60,
+                                                                 ,
+                                                                 ,"="*60]
     return "\n".join(lines)
 
-# ── HEADER ───────────────────────────────────────────────────────────────────
 st.markdown("""
 <div style="background:linear-gradient(135deg,#1E3A8A 0%,#2563EB 60%,#1D4ED8 100%);
 border-radius:16px;padding:1.6rem 2.2rem;margin-bottom:1.4rem;
@@ -216,7 +209,6 @@ align-items:center;justify-content:space-between;">
 </div>
 """, unsafe_allow_html=True)
 
-# ── SIDEBAR ───────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown('<p style="font-size:0.95rem;font-weight:700;color:#1E293B;margin:0 0 0.8rem;">⚙️ Configuration</p>', unsafe_allow_html=True)
     api_url  = st.text_input("", value=API_URL, placeholder="http://localhost:8000")
@@ -261,7 +253,6 @@ padding:7px 11px;margin:4px 0;">
 border-radius:8px;margin-top:1rem;font-size:0.68rem;color:#94A3B8;line-height:1.6;">
 NeuroAI v4.0 · 2026<br>Research purposes only</div>""", unsafe_allow_html=True)
 
-# ── KPI STRIP ─────────────────────────────────────────────────────────────────
 k1,k2,k3,k4,k5 = st.columns(5)
 k1.markdown(kpi_html("97.8%","Recall @ 0.70","✓ Target achieved","#15803D","#F0FDF4"), unsafe_allow_html=True)
 k2.markdown(kpi_html("92.8%","Test Accuracy","1,600 images","#1D4ED8","#EFF6FF"),     unsafe_allow_html=True)
@@ -271,14 +262,12 @@ k5.markdown(kpi_html("< 200ms","Inference","CPU · no GPU","#0F766E","#F0FDFA"),
 
 st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
 
-# ── TABS ──────────────────────────────────────────────────────────────────────
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "🔬  Diagnostic", "📦  Batch", "📈  Performance", "📄  Reports", "ℹ️  About"
+                   , "📦  Batch", "📈  Performance", "📄  Reports", "ℹ️  About"
 ])
 
 CLRS = ["#059669","#0284C7","#D97706","#DC2626","#7C3AED"]
 
-# ═══ TAB 1 — DIAGNOSTIC ═══════════════════════════════════════════════════════
 with tab1:
     L, R = st.columns([1, 2], gap="large")
 
@@ -333,7 +322,6 @@ border:2px dashed #CBD5E1;border-radius:14px;">
                         nm, col, ic, grade, risk, bg, acc = get_label(sid, nclasses)
                         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-                        # ── Result card
                         st.markdown(f"""<div style="background:{bg};border:1px solid {acc};
 border-left:5px solid {col};border-radius:14px;padding:1.3rem 1.7rem;margin-bottom:0.8rem;
 box-shadow:0 2px 12px rgba(0,0,0,0.06);">
@@ -349,7 +337,6 @@ box-shadow:0 2px 12px rgba(0,0,0,0.06);">
   </div>
 </div></div>""", unsafe_allow_html=True)
 
-                        # ── 4 metrics
                         m1,m2,m3,m4 = st.columns(4)
                         cc = "#15803D" if conf >= conf_thr else "#DC2626"
                         ac = "#DC2626" if anom > 0.05 else "#15803D"
@@ -359,7 +346,6 @@ box-shadow:0 2px 12px rgba(0,0,0,0.06);">
                         m3.markdown(kpi_html(f"{anom:.5f}","Anomaly MSE","",ac), unsafe_allow_html=True)
                         m4.markdown(kpi_html("⚠️ YES" if rev else "✅ NO","Review","",rc), unsafe_allow_html=True)
 
-                        # ── Alert
                         if rev:
                             bc = "#DC2626" if risk in ("High","Critical") else "#D97706"
                             bb = "#FEF2F2" if risk in ("High","Critical") else "#FFFBEB"
@@ -377,7 +363,6 @@ border-left:4px solid #22C55E;border-radius:10px;padding:0.8rem 1.1rem;margin:0.
 — Confidence {conf*100:.1f}% ≥ threshold {conf_thr*100:.0f}%</span>
 </div>""", unsafe_allow_html=True)
 
-                        # ── Probability bars
                         st.markdown('<p style="font-size:0.85rem;font-weight:700;color:#1E293B;margin:0.8rem 0 0.4rem;">📊 Class Probabilities</p>', unsafe_allow_html=True)
                         lmd = LABELS_4 if nclasses <= 4 else LABELS_5
                         bars = ""
@@ -396,7 +381,6 @@ padding:5px 10px;border-radius:7px;background:{bg_r};margin:3px 0;">
 </div>"""
                         st.markdown(f'<div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;padding:8px 6px;">{bars}</div>', unsafe_allow_html=True)
 
-                        # ── Grad-CAM
                         if gcb64:
                             st.markdown('<p style="font-size:0.85rem;font-weight:700;color:#1E293B;margin:0.8rem 0 0.4rem;">🔍 Grad-CAM Activation Map</p>', unsafe_allow_html=True)
                             gc_img = Image.open(io.BytesIO(base64.b64decode(gcb64)))
@@ -408,7 +392,6 @@ border-radius:8px;padding:8px 12px;font-size:0.76rem;color:#1D4ED8;margin-top:4p
 🔬 <b>Grad-CAM:</b> Warm colors (red/yellow) = highest neural activation — regions that drove this decision.
 </div>""", unsafe_allow_html=True)
 
-                        # ── Download
                         st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
                         rpt = clinical_report_txt(res, uploaded.name, ts)
                         st.download_button("📄 Download Clinical Report", data=rpt.encode("utf-8"),
@@ -435,8 +418,6 @@ border-radius:8px;padding:8px 12px;font-size:0.76rem;color:#1D4ED8;margin-top:4p
 <li>Download the full <b style="color:#1E293B;">clinical report</b></li>
 </ol></div>""", unsafe_allow_html=True)
 
-
-# ═══ TAB 2 — BATCH ════════════════════════════════════════════════════════════
 with tab2:
     st.markdown('<p style="font-weight:700;color:#1E293B;margin-bottom:0.2rem;">📦 Batch Image Analysis</p>', unsafe_allow_html=True)
     st.markdown('<p style="font-size:0.82rem;color:#64748B;margin-bottom:0.8rem;">Analyze up to 20 images at once. Export results as CSV.</p>', unsafe_allow_html=True)
@@ -486,9 +467,9 @@ with tab2:
                         for r in results:
                             info = lmb.get(r["stage_id"],("Unknown","#888","⚪","","","",""))
                             rows.append({"Filename":r["filename"],"Stage":f"{info[2]} {info[0]}",
-                                         "WHO Grade":info[3],"Risk":info[4],
-                                         "Confidence":f"{r['confidence']*100:.1f}%",
-                                         "Review":"⚠️ YES" if r["requires_review"] else "✅ NO"})
+                                                    :info[3],"Risk":info[4],
+                                                     :f"{r['confidence']*100:.1f}%",
+                                                 :"⚠️ YES" if r["requires_review"] else "✅ NO"})
                         df = pd.DataFrame(rows)
                         st.dataframe(df, use_container_width=True, hide_index=True)
 
@@ -505,8 +486,6 @@ with tab2:
                 except Exception as e:
                     prog.empty(); st.error(str(e))
 
-
-# ═══ TAB 3 — PERFORMANCE ══════════════════════════════════════════════════════
 with tab3:
     st.markdown('<p style="font-weight:700;color:#1E293B;margin-bottom:0.3rem;">📈 Model Performance</p>', unsafe_allow_html=True)
     st.markdown("""<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:9px;
@@ -515,11 +494,11 @@ padding:9px 14px;font-size:0.82rem;color:#166534;margin-bottom:0.8rem;">
 </div>""", unsafe_allow_html=True)
 
     df_p = pd.DataFrame({
-        "Class"    :["🟢 Stage 0 — No Tumor","🔵 Stage I — Meningioma","🟡 Stage II — Pituitary","🔴 Stage III/IV — Glioma","Macro Average"],
-        "Precision":["96%","85%","95%","97%","93%"],
-        "Recall"   :["100%","94%","99%","78%","93%"],
-        "F1-Score" :["98%","89%","97%","86%","93%"],
-        "Support"  :["400","400","400","400","1,600"],
+                   :["🟢 Stage 0 — No Tumor","🔵 Stage I — Meningioma","🟡 Stage II — Pituitary","🔴 Stage III/IV — Glioma","Macro Average"],
+                   :["96%","85%","95%","97%","93%"],
+                   :["100%","94%","99%","78%","93%"],
+                   :["98%","89%","97%","86%","93%"],
+                   :["400","400","400","400","1,600"],
     })
     st.dataframe(df_p, use_container_width=True, hide_index=True)
 
@@ -534,9 +513,9 @@ padding:9px 14px;font-size:0.82rem;color:#166534;margin-bottom:0.8rem;">
     st.markdown("---")
     base = os.path.join(os.path.dirname(__file__),"..")
     curves = {
-        "TL EfficientNetB0 4-cls (FINAL)":os.path.join(base,"models","tl_4classes_efficientnetb0_history.png"),
-        "CNN 4-classes Baseline"          :os.path.join(base,"models","cnn_4classes_history.png"),
-        "CNN Baseline (5-class spec)"     :os.path.join(base,"models","cnn_baseline_history.png"),
+                                         :os.path.join(base,"models","tl_4classes_efficientnetb0_history.png"),
+                                          :os.path.join(base,"models","cnn_4classes_history.png"),
+                                          :os.path.join(base,"models","cnn_baseline_history.png"),
     }
     avail = {k:v for k,v in curves.items() if os.path.exists(v)}
     if avail:
@@ -566,8 +545,6 @@ padding:9px 14px;font-size:0.82rem;color:#166534;margin-bottom:0.8rem;">
                                 caption=f.replace("_"," ").replace(".png",""),
                                 use_column_width=True)
 
-
-# ═══ TAB 4 — REPORTS ══════════════════════════════════════════════════════════
 with tab4:
     st.markdown('<p style="font-weight:700;color:#1E293B;margin-bottom:0.6rem;">📄 Evaluation Reports</p>', unsafe_allow_html=True)
     rdir = os.path.join(os.path.dirname(__file__),"..","reports")
@@ -616,8 +593,6 @@ padding:11px 15px;font-size:0.82rem;color:#92400E;">
 <th style="padding:9px 12px;text-align:left;color:#64748B;font-weight:600;">Size</th>
 </tr></thead><tbody>{rws}</tbody></div>""", unsafe_allow_html=True)
 
-
-# ═══ TAB 5 — ABOUT ════════════════════════════════════════════════════════════
 with tab5:
     a1, a2 = st.columns([3,2], gap="large")
     with a1:
@@ -662,22 +637,22 @@ GlobalAvgPool → BN → Dense(512) → Dropout(0.4) → Dense(4, softmax)
 
     with a2:
         st.markdown('<div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:14px;padding:1.4rem;">' +
-            '<div style="font-size:0.68rem;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.7px;margin-bottom:0.7rem;">Final Results</div>' +
+                                                                                                                                                                   +
             kpi_html("97.8%","Recall @ threshold 0.70","✓ Clinical target achieved","#15803D","#F0FDF4") +
-            "<div style='height:5px'></div>" +
+                                             +
             kpi_html("92.8%","Test Accuracy","1,600 images · 4 classes","#1D4ED8","#EFF6FF") +
-            "<div style='height:5px'></div>" +
+                                             +
             kpi_html("0.9863","ROC-AUC","Excellent discriminating power","#7C3AED","#F5F3FF") +
-            "<div style='height:5px'></div>" +
+                                             +
             kpi_html("0.9268","F2-Score","Weighted recall clinical KPI","#D97706","#FFFBEB") +
-            "</div>", unsafe_allow_html=True)
+                    , unsafe_allow_html=True)
 
         st.markdown("""<div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:14px;padding:1.4rem;margin-top:1rem;">
 <div style="font-size:0.68rem;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.7px;margin-bottom:0.6rem;">Tech Stack</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">""" +
-"".join(f'<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:7px;padding:5px 9px;font-size:0.77rem;color:#475569;">{t}</div>'
+  .join(f'<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:7px;padding:5px 9px;font-size:0.77rem;color:#475569;">{t}</div>'
 for t in ["🐍 Python 3.10","🧠 TF 2.15.1","🏗️ EfficientNetB0","⚡ FastAPI","🎨 Streamlit","📊 scikit-learn","🐳 Docker","🔬 Grad-CAM","🔍 AutoEncoder","📊 Focal Loss"]) +
-"</div></div>", unsafe_allow_html=True)
+              , unsafe_allow_html=True)
 
         st.markdown("""<div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:14px;padding:1.4rem;margin-top:1rem;">
 <div style="font-size:0.68rem;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.7px;margin-bottom:0.5rem;">Quick Start</div>

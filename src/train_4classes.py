@@ -1,8 +1,3 @@
-"""
-train_4classes.py
-Entraînement CNN Baseline avec 4 classes (stades III+IV fusionnés)
-"""
-
 import os
 import sys
 import argparse
@@ -13,18 +8,16 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from losses import FocalLoss, compute_focal_alpha
 import numpy as np
 
-# Configuration
 DATA_DIR = os.path.join("data", "staged_4classes")
 MODELS_DIR = "models"
 IMG_SIZE = (128, 128)
 BATCH_SIZE = 32
-NUM_CLASSES = 4  # ← 4 classes au lieu de 5
+NUM_CLASSES = 4                            
 
 os.makedirs(MODELS_DIR, exist_ok=True)
 
-
 def get_generators_4classes():
-    """Générateurs pour 4 classes."""
+                                     
     from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
     train_datagen = ImageDataGenerator(
@@ -72,48 +65,42 @@ def get_generators_4classes():
 
     return train_gen, val_gen
 
-
 def build_cnn_4classes():
-    """CNN Baseline amélioré pour 4 classes (régularisation L2 + dropout plus fort)."""
+                                                                                       
     reg = tf.keras.regularizers.l2(1e-4)
     model = tf.keras.Sequential([
-        # Bloc 1
+
         tf.keras.layers.Conv2D(32, (3, 3), activation='relu', padding='same',
                                kernel_regularizer=reg, input_shape=(128, 128, 3)),
         tf.keras.layers.BatchNormalization(),
         tf.keras.layers.MaxPooling2D((2, 2)),
         tf.keras.layers.Dropout(0.30),
 
-        # Bloc 2
         tf.keras.layers.Conv2D(64, (3, 3), activation='relu', padding='same',
                                kernel_regularizer=reg),
         tf.keras.layers.BatchNormalization(),
         tf.keras.layers.MaxPooling2D((2, 2)),
         tf.keras.layers.Dropout(0.30),
 
-        # Bloc 3
         tf.keras.layers.Conv2D(128, (3, 3), activation='relu', padding='same',
                                kernel_regularizer=reg),
         tf.keras.layers.BatchNormalization(),
         tf.keras.layers.MaxPooling2D((2, 2)),
         tf.keras.layers.Dropout(0.35),
 
-        # Bloc 4 — capacité supplémentaire
         tf.keras.layers.Conv2D(256, (3, 3), activation='relu', padding='same',
                                kernel_regularizer=reg),
         tf.keras.layers.BatchNormalization(),
         tf.keras.layers.GlobalAveragePooling2D(),
         tf.keras.layers.Dropout(0.40),
 
-        # Dense
         tf.keras.layers.Dense(256, activation='relu', kernel_regularizer=reg),
         tf.keras.layers.BatchNormalization(),
         tf.keras.layers.Dropout(0.50),
-        tf.keras.layers.Dense(NUM_CLASSES, activation='softmax'),  # 4 classes
+        tf.keras.layers.Dense(NUM_CLASSES, activation='softmax'),             
     ], name="CNN_4Classes_v2")
 
     return model
-
 
 def main():
     parser = argparse.ArgumentParser()
@@ -127,18 +114,15 @@ def main():
     print(f"  Epochs : {args.epochs}")
     print("=" * 60)
 
-    # Données
     train_gen, val_gen = get_generators_4classes()
     labels = train_gen.classes
 
-    # Class weights
     from sklearn.utils.class_weight import compute_class_weight
     classes = np.unique(labels)
     weights = compute_class_weight("balanced", classes=classes, y=labels)
     class_weights = dict(zip(classes.astype(int), weights))
     print(f"[OK] Poids des classes : {class_weights}")
 
-    # Loss
     if args.loss == "focal":
         counts = {i: int(np.sum(labels == i)) for i in range(NUM_CLASSES)}
         alpha = compute_focal_alpha(counts)
@@ -147,7 +131,6 @@ def main():
     else:
         loss_fn = "categorical_crossentropy"
 
-    # Modèle
     model = build_cnn_4classes()
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
@@ -160,7 +143,6 @@ def main():
 
     model.summary()
 
-    # Callbacks — moniteur recall pour cible médicale > 95%
     callbacks = [
         tf.keras.callbacks.ModelCheckpoint(
             filepath=os.path.join(MODELS_DIR, "cnn_4classes_best.keras"),
@@ -186,7 +168,6 @@ def main():
         ),
     ]
 
-    # Entraînement
     print(f"\n[•] Début entraînement ({args.epochs} epochs max) ...\n")
     history = model.fit(
         train_gen,
@@ -197,12 +178,10 @@ def main():
         verbose=1,
     )
 
-    # Sauvegarde
     final_path = os.path.join(MODELS_DIR, "cnn_4classes_final.keras")
     model.save(final_path)
     print(f"\n[OK] Modèle final sauvegardé : {final_path}")
 
-    # Métriques
     best_acc = max(history.history["val_accuracy"])
     best_recall = max(history.history.get("val_recall", [0]))
     best_auc = max(history.history.get("val_auc", [0]))
@@ -217,7 +196,6 @@ def main():
     print(f"  Meilleure Val AUC      : {best_auc:.4f}")
     print(f"{'─'*50}")
 
-    # Courbes
     fig, axes = plt.subplots(1, 3, figsize=(15, 4))
     fig.suptitle("CNN 4 Classes — Entraînement", fontsize=13)
 
@@ -247,7 +225,5 @@ def main():
     print(f"\n[OK] Entraînement terminé. Prochaine étape :")
     print(f"    python src/evaluate.py --model {final_path}")
 
-
 if __name__ == "__main__":
     main()
-

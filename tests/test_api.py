@@ -1,16 +1,3 @@
-"""
-tests/test_api.py
-Tests d'intégration de l'API FastAPI — Brain Tumor Staging.
-
-Prérequis : API démarrée sur http://localhost:8000
-    cd api && uvicorn main:app --reload --port 8000
-
-Usage :
-    python -m pytest tests/test_api.py -v
-    python -m pytest tests/test_api.py -v --api-url http://localhost:8000
-    python tests/test_api.py           # mode sans pytest
-"""
-
 import io
 import os
 import sys
@@ -20,14 +7,11 @@ import pytest
 import requests
 from PIL import Image
 
-# -- Configuration ------------------------------------------------------------
 API_URL = os.getenv("API_URL", "http://localhost:8000")
-TIMEOUT = 60  # secondes
+TIMEOUT = 60            
 
-
-# -- Utilitaires --------------------------------------------------------------
 def create_test_image(width=224, height=224, mode="RGB") -> bytes:
-    """Génère une image de test synthétique en mémoire."""
+                                                          
     img = Image.new(mode, (width, height),
                     color=(random.randint(0, 255),
                            random.randint(0, 255),
@@ -37,9 +21,8 @@ def create_test_image(width=224, height=224, mode="RGB") -> bytes:
     buf.seek(0)
     return buf.read()
 
-
 def find_real_test_image():
-    """Cherche une vraie image dans data/Testing/ si disponible."""
+                                                                   
     dirs = [
         os.path.join("data", "Testing", "notumor"),
         os.path.join("data", "Testing", "glioma"),
@@ -58,13 +41,8 @@ def find_real_test_image():
                     return f.read(), fname
     return None, None
 
-
-# ============================================================================
-# Tests
-# ============================================================================
-
 class TestHealthCheck:
-    """GET / — Santé de l'API"""
+                                
 
     def test_health_returns_200(self):
         r = requests.get(API_URL + "/", timeout=TIMEOUT)
@@ -85,9 +63,8 @@ class TestHealthCheck:
         n = r.json().get("num_classes", 0)
         assert n in (4, 5), "num_classes doit être 4 ou 5, obtenu : {}".format(n)
 
-
 class TestModelsEndpoints:
-    """GET /models/list et GET /model/info"""
+                                             
 
     def test_models_list_returns_200(self):
         r = requests.get(API_URL + "/models/list", timeout=TIMEOUT)
@@ -101,7 +78,7 @@ class TestModelsEndpoints:
         assert isinstance(j["available_models"], list)
 
     def test_model_info_returns_200_if_loaded(self):
-        # Vérifier d'abord que le modèle est chargé
+
         health = requests.get(API_URL + "/", timeout=TIMEOUT).json()
         if not health.get("model_loaded"):
             pytest.skip("Aucun modèle chargé")
@@ -120,9 +97,8 @@ class TestModelsEndpoints:
         assert "num_classes" in j
         assert "stage_labels" in j
 
-
 class TestPredictEndpoint:
-    """POST /predict — Inférence image unique"""
+                                                
 
     def test_predict_synthetic_image(self):
         health = requests.get(API_URL + "/", timeout=TIMEOUT).json()
@@ -150,10 +126,10 @@ class TestPredictEndpoint:
         )
         j = r.json()
         required_fields = [
-            "stage_id", "stage_label", "clinical_note",
-            "confidence", "probabilities", "gradcam_base64",
-            "anomaly_score", "requires_review", "review_reason",
-            "model_path", "num_classes",
+                      , "stage_label", "clinical_note",
+                        , "probabilities", "gradcam_base64",
+                           , "requires_review", "review_reason",
+                        , "num_classes",
         ]
         for field in required_fields:
             assert field in j, "Champ manquant : {}".format(field)
@@ -250,12 +226,10 @@ class TestPredictEndpoint:
             files={"file": ("not_an_image.txt", b"this is not an image", "text/plain")},
             timeout=TIMEOUT,
         )
-        assert r.status_code in (400, 422, 500), \
-            "Devrait rejeter un fichier non-image : code {}".format(r.status_code)
-
+        assert r.status_code in (400, 422, 500),            "Devrait rejeter un fichier non-image : code {}".format(r.status_code)
 
 class TestBatchPredictEndpoint:
-    """POST /predict/batch — Inférence batch"""
+                                               
 
     def test_batch_predict_two_images(self):
         health = requests.get(API_URL + "/", timeout=TIMEOUT).json()
@@ -290,7 +264,7 @@ class TestBatchPredictEndpoint:
         )
         item = r.json()[0]
         for field in ["filename", "stage_id", "stage_label",
-                      "confidence", "requires_review"]:
+                                  , "requires_review"]:
             assert field in item, "Champ manquant : {}".format(field)
 
     def test_batch_predict_too_many_files_rejected(self):
@@ -307,13 +281,8 @@ class TestBatchPredictEndpoint:
             files=file_tuples,
             timeout=120,
         )
-        assert r.status_code == 400, \
-            "Devrait rejeter >20 images, code obtenu : {}".format(r.status_code)
+        assert r.status_code == 400,            "Devrait rejeter >20 images, code obtenu : {}".format(r.status_code)
 
-
-# ============================================================================
-# Mode standalone (sans pytest)
-# ============================================================================
 if __name__ == "__main__":
     print("=" * 65)
     print("  TESTS API — Brain Tumor Staging")
@@ -363,4 +332,3 @@ if __name__ == "__main__":
         print("  {} test(s) échoué(s)".format(failed))
     print("=" * 65)
     sys.exit(0 if failed == 0 else 1)
-

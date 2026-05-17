@@ -1,4 +1,3 @@
-"""Reecrit src/evaluate.py completement."""
 import os
 
 content = '''"""
@@ -43,10 +42,8 @@ STAGE_NAMES_5 = [
     "Stage IV\\n(GBM)",
 ]
 
-
 def get_stage_names(num_classes):
     return STAGE_NAMES_4 if num_classes <= 4 else STAGE_NAMES_5
-
 
 def predict_with_uncertainty(model, X_test):
     y_proba = model.predict(X_test, verbose=0)
@@ -54,7 +51,6 @@ def predict_with_uncertainty(model, X_test):
     confidence = np.max(y_proba, axis=1)
     requires_review = confidence < CONFIDENCE_THRESHOLD
     return y_pred, y_proba, confidence, requires_review
-
 
 def plot_confusion_matrix(y_true, y_pred, model_name, stage_names):
     cm = confusion_matrix(y_true, y_pred)
@@ -73,7 +69,6 @@ def plot_confusion_matrix(y_true, y_pred, model_name, stage_names):
     plt.close()
     print("[OK] Confusion matrix : {}".format(path))
     return path
-
 
 def plot_roc_curves(y_true_bin, y_proba, model_name, stage_names):
     colors = ["navy", "cornflowerblue", "darkorange", "forestgreen", "crimson"]
@@ -100,7 +95,6 @@ def plot_roc_curves(y_true_bin, y_proba, model_name, stage_names):
     print("[OK] ROC curves : {}".format(path))
     return path
 
-
 def find_optimal_threshold(y_true, y_proba, num_classes):
     best_thresh, best_recall = 0.5, 0.0
     for thresh in np.arange(0.30, 0.71, 0.02):
@@ -119,7 +113,6 @@ def find_optimal_threshold(y_true, y_proba, num_classes):
     print("     Optimal threshold : {:.2f} -> recall {:.1f}% ({}/{} samples)".format(
         best_thresh, best_recall * 100, kept, len(y_true)))
     return float(best_thresh), float(best_recall)
-
 
 def compute_all_metrics(y_true, y_pred, y_proba, model_name, num_classes):
     stage_names = get_stage_names(num_classes)
@@ -180,7 +173,6 @@ def compute_all_metrics(y_true, y_pred, y_proba, model_name, num_classes):
         "optimal_threshold": opt_thresh,
     }
 
-
 def log_uncertain_cases(filenames, confidence, y_pred, requires_review,
                          model_name, stage_names):
     import pandas as pd
@@ -204,7 +196,6 @@ def log_uncertain_cases(filenames, confidence, y_pred, requires_review,
     else:
         print("[OK] No uncertain cases (all confidence >= {}).".format(
             CONFIDENCE_THRESHOLD))
-
 
 def load_test_data_from_dir(data_dir, img_h, img_w, rescale):
     from tensorflow.keras.preprocessing.image import ImageDataGenerator
@@ -235,7 +226,6 @@ def load_test_data_from_dir(data_dir, img_h, img_w, rescale):
     X = np.concatenate(X_list)
     y = np.concatenate(y_list)
     return X, y
-
 
 def evaluate_model(model_path, X_test, y_test_raw, num_classes=None):
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -271,7 +261,6 @@ def evaluate_model(model_path, X_test, y_test_raw, num_classes=None):
         CONFIDENCE_THRESHOLD, n_uncertain, len(y_test_raw), pct))
 
     return metrics
-
 
 if __name__ == "__main__":
     import argparse
@@ -322,9 +311,7 @@ out_path = os.path.join("src", "evaluate.py")
 with open(out_path, "w", encoding="utf-8") as f:
     f.write(content)
 
-# Verif BOM
 with open(out_path, "rb") as f:
     first = f.read(3)
 assert first != b"\\xef\\xbb\\xbf", "BOM detecte!"
 print("evaluate.py reecrit proprement ({} lignes)".format(content.count("\\n")))
-
